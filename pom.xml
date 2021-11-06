@@ -1,34 +1,32 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.scijava</groupId>
-    <artifactId>pom-scijava</artifactId>
-    <version>30.0.0</version>
-    <relativePath />
-  </parent>
+	<parent>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>30.0.0</version>
+	</parent>
 
-
-  <groupId>de.mpicbg.tomancaklab</groupId>
-  <artifactId>mastodon-simviewer</artifactId>
-  <version>1.0.0</version>
+	<groupId>cz.it4i.ulman.transfers</groupId>
+	<artifactId>mastodon-ext-viewers</artifactId>
+	<version>0.9</version>
 
 	<organization>
-		<name>MPI-CBG</name>
-		<url>http://www.mpi-cbg.de</url>
+		<name>IT4Innovations</name>
+		<url>https://www.it4i.cz/en/</url>
 	</organization>
 
-  <name>Mastodon-dedicated Plugins for the Fiji world</name>
-  <description>Implementation of various plugins...</description>
-  <url>https://github.com/xulman/TomancakLab</url>
-  <inceptionYear>2019</inceptionYear>
+	<name>Online Mastodon Exports</name>
+	<description>Tracking data transfers from Mastodon to various viewers (e.g., sciview or Blender)</description>
+	<url>https://github.com/mastdon-sc/TBA</url>
+	<inceptionYear>2021</inceptionYear>
 
-  <packaging>jar</packaging>
+	<packaging>jar</packaging>
 	<licenses>
 		<license>
-			<name>CC0 1.0 Universal License</name>
-			<url>http://creativecommons.org/publicdomain/zero/1.0/</url>
+			<name>BSD-2-Clause</name>
+			<url>https://choosealicense.com/licenses/bsd-2-clause/</url>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
@@ -62,54 +60,73 @@
 	</mailingLists>
 
 
+	<!-- NEEDS TO BE COMPLETED -->
 	<scm>
-		<connection>scm:git:git://github.com/xulman/TomancakLab</connection>
+		<connection>scm:git:git://github.com/TBA</connection>
 		<developerConnection>scm:git:localhost:9999</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/xulman/TomancakLab</url>
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>http://github.com/xulman/TomancakLab/issues</url>
+		<url>http://github.com/xulman/TBA</url>
 	</issueManagement>
 	<ciManagement>
 		<system>None</system>
 	</ciManagement>
 
 	<properties>
-		<license.licenseName>cc0</license.licenseName>
-		<license.copyrightOwners>Tomancak lab</license.copyrightOwners>
-		<license.projectName>TomancakLab's Mastodon Plugins</license.projectName>
+		<license.licenseName>BSD simplified (2 clause)</license.licenseName>
+		<license.copyrightOwners>Vladimír Ulman</license.copyrightOwners>
+		<license.projectName>Online Mastodon Exports</license.projectName>
+		<package-name>cz.it4i.ulman.transfers</package-name>
 
+		<mastodon.version>1.0.0-beta-19</mastodon.version>
 		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
 	</properties>
 
-  <repositories>
-    <repository>
-      <id>imagej.public</id>
-      <url>http://maven.imagej.net/content/groups/public</url>
-    </repository>
-  </repositories>
+	<repositories>
+		<repository>
+			<id>scijava.public</id>
+			<url>http://maven.scijava.org/content/groups/public</url>
+		</repository>
+		<repository>
+			<id>it4i</id>
+			<url>https://artifactory.cs.vsb.cz/it4i/</url>
+		</repository>
+	</repositories>
 
-  <dependencies>
-    <dependency>
-      <groupId>net.imagej</groupId>
-      <artifactId>imagej</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.mastodon</groupId>
-      <artifactId>mastodon</artifactId>
-      <version>1.0.0-beta-18-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>org.graphstream</groupId>
-      <artifactId>gs-core</artifactId>
-      <version>1.3</version>
-    </dependency>
-    <dependency>
-      <groupId>org.zeromq</groupId>
-      <artifactId>jeromq</artifactId>
-      <version>0.5.1</version>
-    </dependency>
-  </dependencies>
+	<dependencies>
+		<dependency>
+			<groupId>org.mastodon</groupId>
+			<artifactId>mastodon</artifactId>
+			<version>${mastodon.version}</version>
+		</dependency>
+
+		<!-- viewers of (also) lineage trees -->
+		<dependency>
+			<groupId>cz.it4i.ulman.transfers.graphics</groupId>
+			<artifactId>graphics-net-transfers</artifactId>
+			<version>0.9</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.graphstream</groupId>
+			<artifactId>gs-core</artifactId>
+			<version>1.3</version>
+		</dependency>
+
+		<!-- for simviewer -->
+		<dependency>
+			<groupId>org.zeromq</groupId>
+			<artifactId>jeromq</artifactId>
+			<version>0.5.1</version>
+		</dependency>
+
+		<!-- likely to be removed?? -->
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej</artifactId>
+		</dependency>
+	</dependencies>
 </project>

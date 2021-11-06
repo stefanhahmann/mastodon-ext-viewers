@@ -1,4 +1,4 @@
-package de.mpicbg.tomancaklab;
+package cz.it4i.ulman.transfers;
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
