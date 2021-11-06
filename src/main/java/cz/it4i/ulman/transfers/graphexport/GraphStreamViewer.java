@@ -1,4 +1,4 @@
-package de.mpicbg.tomancaklab.graphexport;
+package cz.it4i.ulman.transfers.graphexport;
 
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;

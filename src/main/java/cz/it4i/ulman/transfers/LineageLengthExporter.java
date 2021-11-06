@@ -1,4 +1,4 @@
-package de.mpicbg.tomancaklab;
+package cz.it4i.ulman.transfers;
 
 import org.mastodon.collection.*;
 import org.mastodon.ui.util.FileChooser;

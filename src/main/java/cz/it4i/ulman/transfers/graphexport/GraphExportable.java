@@ -1,4 +1,4 @@
-package de.mpicbg.tomancaklab.graphexport;
+package cz.it4i.ulman.transfers.graphexport;
 
 public interface GraphExportable
 {

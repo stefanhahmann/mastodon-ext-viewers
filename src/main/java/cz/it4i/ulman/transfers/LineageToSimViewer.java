@@ -1,4 +1,4 @@
-package de.mpicbg.tomancaklab;
+package cz.it4i.ulman.transfers;
 
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.MamutViewTrackScheme;
