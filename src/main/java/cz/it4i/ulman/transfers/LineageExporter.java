@@ -1,7 +1,8 @@
 package cz.it4i.ulman.transfers;
 
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
-import cz.it4i.ulman.transfers.graphexport.yEdGraphMLWriter;
+import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
+import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
 import cz.it4i.ulman.transfers.graphexport.GraphStreamViewer;
 
 import org.mastodon.spatial.SpatioTemporalIndex;
@@ -11,14 +12,17 @@ import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
 
+import org.scijava.command.CommandModule;
+import org.scijava.plugin.Plugin;
+import org.scijava.plugin.Parameter;
+import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
-import org.scijava.plugin.Parameter;
-import org.scijava.plugin.Plugin;
+import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
-import org.scijava.widget.FileWidget;
 
-import java.io.File;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 
 @Plugin( type = Command.class, name = "Export lineage with time axis converted to generations axis" )
@@ -27,33 +31,45 @@ public class LineageExporter extends DynamicCommand
 	@Parameter(persist = false)
 	private MamutAppModel appModel;
 
-	@Parameter(persist = false)
-	private boolean doyEdExport = true;
+	@Parameter(label = "How to annotate the exported lineage:",
+			choices = {"no annotation","track durations in frames","track durations in SI units"} )
+	public String exportParams;
 
-	@Parameter(style = FileWidget.OPEN_STYLE)
-	private File graphMLfile = new File("/tmp/mastodon.graphml");
+	@Parameter(label = "Where to export the lineage:",
+			choices = {"yEd: into .graphml file","Blender: via an online connection","GraphStreamer: in a preview window"} )
+	public String exportMode;
+
+	@Parameter(visibility = ItemVisibility.MESSAGE)
+	private final String exportInfoMsg = "An export-specific dialog may open after 'OK'";
 
 	@Parameter
 	private LogService logServiceRef;
 
+	@Parameter
+	private CommandService commandServiceRef;
+
 	@Override
 	public void run()
 	{
-		if (doyEdExport)
-		{
-			if (graphMLfile != null)
-			{
-				//opens the GraphML file
-				final GraphExportable ge = new yEdGraphMLWriter(graphMLfile.getPath());
-				time2Gen2GraphExportable( ge );
+		try {
+			GraphExportable ge = null;
+			if (exportMode.startsWith("yEd")) {
+				Future<CommandModule> future = commandServiceRef.run(yEdGraphMLWriterDlg.class, true);
+				ge = ((GraphExportableFetcher)future.get().getCommand()).getUnderlyingGraphExportable();
+			}
+			else if (exportMode.startsWith("Blender")) {
+				ge = null;
+			}
+			else if (exportMode.startsWith("GraphStreamer")) {
+				ge = new GraphStreamViewer("Mastodon Generated Lineage");
 			}
 			else
-				throw new RuntimeException("Should never get here!");
-		}
-		else
-		{
-			final GraphExportable ge = new GraphStreamViewer("Mastodon Generation Lineage");
-			time2Gen2GraphExportable( ge );
+				logServiceRef.error("Selected unknown export mode, doing nothing.");
+			if (ge != null) time2Gen2GraphExportable( ge );
+		} catch (InterruptedException e) {
+			logServiceRef.info("Dialog interrupted, doing nothing.");
+		} catch (ExecutionException e) {
+			logServiceRef.error("Some error executing the additional dialog: "+e.getMessage());
 		}
 	}
 
