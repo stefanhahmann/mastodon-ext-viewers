@@ -212,7 +212,7 @@ public class LineageExporter extends DynamicCommand
 				else
 				{
 					//we're a leaf -> pretend a subtree of single column width
-					xRightBound += ge.xColumnWidth;
+					xRightBound += ge.get_xColumnWidth();
 				}
 
 				final String rootID = Integer.toString(root.getInternalPoolIndex());
@@ -220,8 +220,8 @@ public class LineageExporter extends DynamicCommand
 				                      ? (xRightBound + xLeftBound)/2
 				                      : (childrenXcoords[0] + childrenXcoords[countForwardLinks-1])/2;
 				//gsv.graph.addNode(rootID).addAttribute("xyz", new int[] {!,!,0});
-				ge.addNode(rootID, root.getLabel(),ge.defaultNodeColour,
-				           xCoords[xCoordsPos],ge.yLineStep*generation);
+				ge.addNode(rootID, root.getLabel(),ge.get_defaultNodeColour(),
+				           xCoords[xCoordsPos],ge.get_yLineStep()*generation);
 
 				if (countForwardLinks > 1)
 				{
@@ -236,7 +236,7 @@ public class LineageExporter extends DynamicCommand
 							System.out.print("generation: "+generation+"   ");
 							//ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
 							ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							                  ,childrenXcoords[childCnt++],ge.yLineStep*(generation+1)
+							                  ,childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1)
 							                );
 						}
 					}
@@ -249,7 +249,7 @@ public class LineageExporter extends DynamicCommand
 							System.out.print("generation: "+generation+"   ");
 							//ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
 							ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							                  ,childrenXcoords[childCnt++],ge.yLineStep*(generation+1)
+							                  ,childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1)
 							                );
 						}
 					}
