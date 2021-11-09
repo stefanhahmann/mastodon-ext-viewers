@@ -7,7 +7,7 @@ import org.graphstream.ui.view.Viewer;
 
 import java.awt.*;
 
-public class GraphStreamViewer implements GraphExportable
+public class GraphStreamViewer extends AbstractGraphExporter implements GraphExportable
 {
 	// -----------------------------------------------------------------------------
 	private final Graph graph;
