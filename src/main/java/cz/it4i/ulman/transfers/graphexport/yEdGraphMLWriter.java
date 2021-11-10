@@ -4,7 +4,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class yEdGraphMLWriter implements GraphExportable
+public class yEdGraphMLWriter extends AbstractGraphExporter implements GraphExportable
 {
 	// -----------------------------------------------------------------------------
 	private BufferedWriter file;

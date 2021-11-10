@@ -2,16 +2,19 @@ package cz.it4i.ulman.transfers.graphexport;
 
 public interface GraphExportable
 {
-	/** grid stepping along x */
-	int xColumnWidth = 50;
-	/** grid stepping along y */
-	int yLineStep = 100;
-	/** the bending point along y */
-	int defaultBendingPointAbsoluteOffsetY = -80;
+	int get_xColumnWidth();
+	int get_yLineStep();
+	int get_defaultBendingPointAbsoluteOffsetY();
+	int get_defaultNodeWidth();
+	int get_defaultNodeHeight();
+	int get_defaultNodeColour();
 
-	int defaultNodeWidth  = 30;
-	int defaultNodeHeight = 30;
-	int defaultNodeColour = 0xCCCCCC;
+	void set_xColumnWidth(int val);
+	void set_yLineStep(int val);
+	void set_defaultBendingPointAbsoluteOffsetY(int val);
+	void set_defaultNodeWidth(int val);
+	void set_defaultNodeHeight(int val);
+	void set_defaultNodeColour(int val);
 
 	/** adds node whose color should have a meaning
 	    when read in hexadecimal 0xRRGGBB format; default
