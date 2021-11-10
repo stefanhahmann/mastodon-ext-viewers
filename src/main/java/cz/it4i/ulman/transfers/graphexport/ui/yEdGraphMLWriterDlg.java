@@ -11,7 +11,13 @@ import java.io.File;
 public class yEdGraphMLWriterDlg extends AbstractGraphExportableDlg implements Command {
 	// ------ options and setup of this particular export mode ------
 	@Parameter(label = "Define .graphml file to save the lineage: ", style = FileWidget.SAVE_STYLE)
-	private File graphMLfile = new File("/tmp/mastodon.graphml");
+	File graphMLfile = new File("/tmp/mastodon.graphml");
+
+	@Override
+	void provideDefaults() {
+		xColumnWidth = 80;
+		defaultNodeWidth = 50;
+	}
 
 	// ------ after all options are set, the workhorse is to be created here ------
 	@Override

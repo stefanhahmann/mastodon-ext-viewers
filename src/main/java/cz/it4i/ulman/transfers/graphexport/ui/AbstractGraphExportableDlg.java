@@ -4,7 +4,7 @@ import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import org.scijava.plugin.Parameter;
 
 public abstract class AbstractGraphExportableDlg implements GraphExportableFetcher {
-	@Parameter(label = "grid stepping along x")
+	@Parameter(label = "grid stepping along x", initializer = "provideDefaults")
 	int xColumnWidth = 50;
 
 	@Parameter(label = "grid stepping along y")
@@ -21,6 +21,10 @@ public abstract class AbstractGraphExportableDlg implements GraphExportableFetch
 
 	@Parameter(description = "RGB value in the hexadecimal format; 00 is black, FF is white")
 	int defaultNodeColour = 0xCCCCCC;
+
+	/** override this in upstream class if you wanna have own different default values */
+	void provideDefaults() {
+	}
 
 
 	GraphExportable worker = null;
