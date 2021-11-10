@@ -23,10 +23,12 @@ public abstract class AbstractGraphExportableDlg implements GraphExportableFetch
 	int defaultNodeColour = 0xCCCCCC;
 
 
-	GraphExportable worker;
+	GraphExportable worker = null;
 	//
 	@Override
 	public GraphExportable getUnderlyingGraphExportable() {
+		if (worker == null) throw new IllegalStateException("Dialog "+this.getClass().getName()+" is broken.");
+
 		worker.set_xColumnWidth(this.xColumnWidth);
 		worker.set_yLineStep(this.yLineStep);
 		worker.set_defaultBendingPointAbsoluteOffsetY(this.defaultBendingPointAbsoluteOffsetY);

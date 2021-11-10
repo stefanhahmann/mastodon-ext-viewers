@@ -3,7 +3,8 @@ package cz.it4i.ulman.transfers;
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
 import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
-import cz.it4i.ulman.transfers.graphexport.GraphStreamViewer;
+import cz.it4i.ulman.transfers.graphexport.ui.GraphStreamViewerDlg;
+import cz.it4i.ulman.transfers.graphexport.ui.BlenderWriterDlg;
 
 import org.mastodon.spatial.SpatioTemporalIndex;
 import org.mastodon.mamut.MamutAppModel;
@@ -25,7 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 
-@Plugin( type = Command.class, name = "Export lineage with time axis converted to generations axis" )
+@Plugin( type = Command.class, name = "Export lineage with generations axis instead of time axis" )
 public class LineageExporter extends DynamicCommand
 {
 	@Parameter(persist = false)
@@ -52,20 +53,29 @@ public class LineageExporter extends DynamicCommand
 	public void run()
 	{
 		try {
-			GraphExportable ge = null;
+			Future<CommandModule> future = null;
 			if (exportMode.startsWith("yEd")) {
-				Future<CommandModule> future = commandServiceRef.run(yEdGraphMLWriterDlg.class, true);
-				ge = ((GraphExportableFetcher)future.get().getCommand()).getUnderlyingGraphExportable();
+				future = commandServiceRef.run(yEdGraphMLWriterDlg.class, true);
 			}
 			else if (exportMode.startsWith("Blender")) {
-				ge = null;
+				future = commandServiceRef.run(BlenderWriterDlg.class, true);
 			}
 			else if (exportMode.startsWith("GraphStreamer")) {
-				ge = new GraphStreamViewer("Mastodon Generated Lineage");
+				future = commandServiceRef.run(GraphStreamViewerDlg.class, true);
 			}
-			else
-				logServiceRef.error("Selected unknown export mode, doing nothing.");
-			if (ge != null) time2Gen2GraphExportable( ge );
+			else logServiceRef.error("Selected unknown export mode, doing nothing.");
+
+			if (future != null) {
+				//wait for the dialog to be resolved
+				final CommandModule m = future.get();
+				if (!m.isCanceled()) {
+					GraphExportable ge = ((GraphExportableFetcher)m.getCommand()).getUnderlyingGraphExportable();
+					//sanity check....
+					if (ge != null) time2Gen2GraphExportable(ge);
+					else throw new IllegalStateException("Dialog "+m.getInfo().getTitle()+" is broken.");
+				}
+				else logServiceRef.info("Dialog canceled, exporting nothing.");
+			}
 		} catch (InterruptedException e) {
 			logServiceRef.info("Dialog interrupted, doing nothing.");
 		} catch (ExecutionException e) {
