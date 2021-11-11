@@ -38,7 +38,7 @@ public class LineageExporter extends DynamicCommand
 
 	@Parameter(label = "Where to export the lineage:",
 			choices = {"yEd: into .graphml file","Blender: via an online connection","GraphStreamer: in a preview window"} )
-	public String exportMode;
+	public String exportTarget;
 
 	@Parameter(visibility = ItemVisibility.MESSAGE)
 	private final String exportInfoMsg = "An export-specific dialog may open after 'OK'";
@@ -54,14 +54,14 @@ public class LineageExporter extends DynamicCommand
 	{
 		try {
 			Future<CommandModule> future = null;
-			if (exportMode.startsWith("yEd")) {
+			if (exportTarget.startsWith("yEd")) {
 				future = commandServiceRef.run(yEdGraphMLWriterDlg.class, true);
 			}
-			else if (exportMode.startsWith("Blender")) {
+			else if (exportTarget.startsWith("Blender")) {
 				future = commandServiceRef.run(BlenderWriterDlg.class, true,
 						"defaultNodeHeight",10);
 			}
-			else if (exportMode.startsWith("GraphStreamer")) {
+			else if (exportTarget.startsWith("GraphStreamer")) {
 				future = commandServiceRef.run(GraphStreamViewerDlg.class, true);
 			}
 			else logServiceRef.error("Selected unknown export mode, doing nothing.");
