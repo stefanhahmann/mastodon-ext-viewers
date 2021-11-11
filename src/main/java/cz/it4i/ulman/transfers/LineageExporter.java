@@ -1,60 +1,172 @@
 package cz.it4i.ulman.transfers;
 
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
-import cz.it4i.ulman.transfers.graphexport.yEdGraphMLWriter;
-import cz.it4i.ulman.transfers.graphexport.GraphStreamViewer;
+import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
+import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
+import cz.it4i.ulman.transfers.graphexport.ui.GraphStreamViewerDlg;
+import cz.it4i.ulman.transfers.graphexport.ui.BlenderWriterDlg;
 
 import org.mastodon.spatial.SpatioTemporalIndex;
+import org.mastodon.model.SelectionModel;
 import org.mastodon.mamut.MamutAppModel;
-import org.mastodon.mamut.model.Model;
 import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
 
-import org.scijava.command.Command;
-import org.scijava.command.DynamicCommand;
-import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.plugin.Parameter;
+import org.scijava.ItemVisibility;
+import org.scijava.command.Command;
+import org.scijava.command.CommandModule;
+import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
-import org.scijava.widget.FileWidget;
+import org.scijava.prefs.PrefService;
 
-import java.io.File;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 
-@Plugin( type = Command.class, name = "Export lineage with time axis converted to generations axis" )
-public class LineageExporter extends DynamicCommand
+@Plugin( type = Command.class, name = "Export lineage with generations axis instead of time axis" )
+public class LineageExporter implements Command
 {
+	@Parameter(visibility = ItemVisibility.MESSAGE)
+	private final String selectionInfoMsg = "...also of only selected sub-trees.";
+
 	@Parameter(persist = false)
 	private MamutAppModel appModel;
 
-	@Parameter(persist = false)
-	private boolean doyEdExport = true;
+	@Parameter(label = "How to annotate the exported lineage:",
+			choices = {"no annotation","track durations in frames","track durations in SI units"} )
+	public String exportParams;
 
-	@Parameter(style = FileWidget.OPEN_STYLE)
-	private File graphMLfile = new File("/tmp/mastodon.graphml");
+	@Parameter(label = "How to export the lineage:",
+			choices = {"with straight lines","with rectangular lines","with own bending position"} )
+	public String exportMode;
+
+	@Parameter(label = "Where to export the lineage:",
+			choices = {"yEd: into .graphml file","Blender: via an online connection","GraphStreamer: in a preview window"} )
+	public String exportTarget;
+
+	@Parameter(visibility = ItemVisibility.MESSAGE)
+	private final String exportInfoMsg = "An export-specific dialog may open after 'OK'";
 
 	@Parameter
 	private LogService logServiceRef;
 
+	@Parameter
+	private CommandService commandService;
+
+	@Parameter
+	private PrefService prefService;
+
+	private void adjustParams(Class dialogClass, Map<String,Object> params) {
+		if (!exportMode.startsWith("with own"))
+			params.put("defaultBendingPointAbsoluteOffsetY", //this does not change the pref-stored value
+					prefService.getInt(dialogClass, "defaultBendingPointAbsoluteOffsetY", -80));
+	}
+
 	@Override
 	public void run()
 	{
-		if (doyEdExport)
-		{
-			if (graphMLfile != null)
-			{
-				//opens the GraphML file
-				final GraphExportable ge = new yEdGraphMLWriter(graphMLfile.getPath());
-				time2Gen2GraphExportable( ge );
+		try {
+			Future<CommandModule> future = null;
+			Map<String,Object> runParams = new HashMap<>(10);
+
+			if (exportTarget.startsWith("yEd")) {
+				adjustParams(yEdGraphMLWriterDlg.class, runParams);
+				future = commandService.run(yEdGraphMLWriterDlg.class, true, runParams);
 			}
-			else
-				throw new RuntimeException("Should never get here!");
+			else if (exportTarget.startsWith("Blender")) {
+				runParams.put("defaultNodeHeight",10); //to hide this item from the dialog
+				adjustParams(BlenderWriterDlg.class, runParams);
+				future = commandService.run(BlenderWriterDlg.class, true, runParams);
+			}
+			else if (exportTarget.startsWith("GraphStreamer")) {
+				adjustParams(GraphStreamViewerDlg.class, runParams);
+				future = commandService.run(GraphStreamViewerDlg.class, true, runParams);
+			}
+			else logServiceRef.error("Selected unknown export mode, doing nothing.");
+
+			if (future != null) {
+				//wait for the dialog to be resolved
+				final CommandModule m = future.get();
+				if (!m.isCanceled()) {
+					GraphExportable ge = ((GraphExportableFetcher)m.getCommand()).getUnderlyingGraphExportable();
+					//sanity check....
+					if (ge != null) {
+						//some final tuning
+						if (exportMode.startsWith("with rect"))
+							ge.set_defaultBendingPointAbsoluteOffsetY( -ge.get_yLineStep() );
+						//go!
+						selectionModel = appModel.getSelectionModel();
+						isSelectionEmpty = selectionModel.isEmpty();
+						if (isSelectionEmpty) time2Gen2GraphExportable(ge);
+						else time2Gen2GraphExportable_rootsFromSelection(ge);
+					}
+					else throw new IllegalStateException("Dialog "+m.getInfo().getTitle()+" is broken.");
+				}
+				else logServiceRef.info("Dialog canceled, exporting nothing.");
+			}
+		} catch (InterruptedException e) {
+			logServiceRef.info("Dialog interrupted, doing nothing.");
+		} catch (ExecutionException e) {
+			logServiceRef.error("Some error executing the additional dialog: "+e.getMessage());
 		}
-		else
+	}
+
+	boolean isSelectionEmpty;
+	SelectionModel<Spot, Link> selectionModel;
+
+	private void time2Gen2GraphExportable_rootsFromSelection(final GraphExportable ge)
+	{
+		final ModelGraph modelGraph = appModel.getModel().getGraph();
+		final Link lRef = modelGraph.edgeRef();              //link reference
+		final Spot sRef = modelGraph.vertices().createRef(); //aux spot reference
+
+		int xLeftBound = 0;
+		final int[] xIgnoreCoords = new int[1];
+
+		for (Spot spot : selectionModel.getSelectedVertices())
 		{
-			final GraphExportable ge = new GraphStreamViewer("Mastodon Generation Lineage");
-			time2Gen2GraphExportable( ge );
+			//find how many _selected_ backward-references (time-wise) this spot has
+			int countBackwardLinks = 0;
+
+			final int time = spot.getTimepoint();
+			for (int n=0; n < spot.incomingEdges().size(); ++n)
+			{
+				spot.incomingEdges().get(n, lRef).getSource( sRef );
+				if (sRef.getTimepoint() < time && selectionModel.isSelected(sRef))
+				{
+					++countBackwardLinks;
+				}
+			}
+			for (int n=0; n < spot.outgoingEdges().size(); ++n)
+			{
+				spot.outgoingEdges().get(n, lRef).getTarget( sRef );
+				if (sRef.getTimepoint() < time && selectionModel.isSelected(sRef))
+				{
+					++countBackwardLinks;
+				}
+			}
+
+			//can this spot be root?
+			if (countBackwardLinks == 0)
+			{
+				logServiceRef.info("Discovered root "+spot.getLabel());
+				xLeftBound += discoverEdge(ge,modelGraph, spot, 0,xLeftBound, xIgnoreCoords,0);
+			}
+
 		}
+
+		modelGraph.vertices().releaseRef(sRef);
+		modelGraph.releaseRef(lRef);
+
+		ge.close();
+
+		logServiceRef.info("generation SELECTED graph rendered");
+		modelGraph.notifyGraphChanged();
 	}
 
 	/** implements the "LineageExporter" functionality */
@@ -65,11 +177,10 @@ public class LineageExporter extends DynamicCommand
 		//shortcuts to the data
 		final int timeFrom = appModel.getMinTimepoint();
 		final int timeTill = appModel.getMaxTimepoint();
-		final Model      model      = appModel.getModel();
-		final ModelGraph modelGraph = model.getGraph();
+		final ModelGraph modelGraph = appModel.getModel().getGraph();
 
 		//aux Mastodon data: shortcuts and caches/proxies
-		final SpatioTemporalIndex< Spot > spots = model.getSpatioTemporalIndex();
+		final SpatioTemporalIndex< Spot > spots = appModel.getModel().getSpatioTemporalIndex();
 		final Link lRef = modelGraph.edgeRef();              //link reference
 		final Spot sRef = modelGraph.vertices().createRef(); //aux spot reference
 
@@ -120,6 +231,10 @@ public class LineageExporter extends DynamicCommand
 		modelGraph.notifyGraphChanged();
 	}
 
+	private boolean isEligible(Spot s)
+	{
+		return isSelectionEmpty || selectionModel.isSelected(s);
+	}
 
 	/** returns width of the tree induced with the given 'root' */
 	private int discoverEdge(final GraphExportable ge, final ModelGraph modelGraph,
@@ -128,9 +243,12 @@ public class LineageExporter extends DynamicCommand
 	                         final int xLeftBound,
 	                         final int[] xCoords, final int xCoordsPos)
 	{
+		final boolean doStraightL = exportMode.startsWith("with straight");
+
 		final Spot spot = modelGraph.vertices().createRef(); //aux spot reference
 		final Spot fRef = modelGraph.vertices().createRef(); //spot's ancestor buddy (forward)
 		final Link lRef = modelGraph.edgeRef();              //link reference
+		final Spot tRef = modelGraph.vertices().createRef(); //tmp reference on spot
 
 		spot.refTo( root );
 
@@ -145,24 +263,26 @@ public class LineageExporter extends DynamicCommand
 			for (int n=0; n < spot.incomingEdges().size(); ++n)
 			{
 				spot.incomingEdges().get(n, lRef).getSource( fRef );
-				if (fRef.getTimepoint() > time)
+				if (fRef.getTimepoint() > time && isEligible(fRef))
 				{
 					++countForwardLinks;
+					tRef.refTo(fRef); //keep the last used valid reference
 				}
 			}
 			for (int n=0; n < spot.outgoingEdges().size(); ++n)
 			{
 				spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-				if (fRef.getTimepoint() > time)
+				if (fRef.getTimepoint() > time && isEligible(fRef))
 				{
 					++countForwardLinks;
+					tRef.refTo(fRef);
 				}
 			}
 
 			if (countForwardLinks == 1)
 			{
 				//just a vertex on "a string", move over it
-				spot.refTo( fRef );
+				spot.refTo( tRef );
 			}
 			else
 			{
@@ -177,7 +297,7 @@ public class LineageExporter extends DynamicCommand
 					for (int n=0; n < spot.incomingEdges().size(); ++n)
 					{
 						spot.incomingEdges().get(n, lRef).getSource( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							xRightBound += discoverEdge(ge,modelGraph, fRef, generation+1,xRightBound, childrenXcoords,childCnt);
 							++childCnt;
@@ -186,7 +306,7 @@ public class LineageExporter extends DynamicCommand
 					for (int n=0; n < spot.outgoingEdges().size(); ++n)
 					{
 						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							xRightBound += discoverEdge(ge,modelGraph, fRef, generation+1,xRightBound, childrenXcoords,childCnt);
 							++childCnt;
@@ -196,7 +316,7 @@ public class LineageExporter extends DynamicCommand
 				else
 				{
 					//we're a leaf -> pretend a subtree of single column width
-					xRightBound += ge.xColumnWidth;
+					xRightBound += ge.get_xColumnWidth();
 				}
 
 				final String rootID = Integer.toString(root.getInternalPoolIndex());
@@ -204,8 +324,8 @@ public class LineageExporter extends DynamicCommand
 				                      ? (xRightBound + xLeftBound)/2
 				                      : (childrenXcoords[0] + childrenXcoords[countForwardLinks-1])/2;
 				//gsv.graph.addNode(rootID).addAttribute("xyz", new int[] {!,!,0});
-				ge.addNode(rootID, root.getLabel(),ge.defaultNodeColour,
-				           xCoords[xCoordsPos],ge.yLineStep*generation);
+				ge.addNode(rootID, root.getLabel(),ge.get_defaultNodeColour(),
+				           xCoords[xCoordsPos],ge.get_yLineStep()*generation);
 
 				if (countForwardLinks > 1)
 				{
@@ -214,27 +334,25 @@ public class LineageExporter extends DynamicCommand
 					for (int n=0; n < spot.incomingEdges().size(); ++n)
 					{
 						spot.incomingEdges().get(n, lRef).getSource( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							//edge
 							System.out.print("generation: "+generation+"   ");
-							//ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							                  ,childrenXcoords[childCnt++],ge.yLineStep*(generation+1)
-							                );
+							if (doStraightL) ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex()) );
+							else ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex()),
+							                  childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );
 						}
 					}
 					for (int n=0; n < spot.outgoingEdges().size(); ++n)
 					{
 						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							//edge
 							System.out.print("generation: "+generation+"   ");
-							//ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							                  ,childrenXcoords[childCnt++],ge.yLineStep*(generation+1)
-							                );
+							if (doStraightL) ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex()) );
+							else ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex()),
+							                  childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );
 						}
 					}
 				}
@@ -247,6 +365,7 @@ public class LineageExporter extends DynamicCommand
 				//clean up first before exiting
 				modelGraph.vertices().releaseRef(spot);
 				modelGraph.vertices().releaseRef(fRef);
+				modelGraph.vertices().releaseRef(tRef);
 				modelGraph.releaseRef(lRef);
 
 				return (xRightBound - xLeftBound);

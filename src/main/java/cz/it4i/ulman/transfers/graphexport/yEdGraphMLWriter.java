@@ -1,16 +1,27 @@
 package cz.it4i.ulman.transfers.graphexport;
 
+import org.scijava.log.LogService;
+import org.scijava.log.StderrLogService;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class yEdGraphMLWriter implements GraphExportable
+public class yEdGraphMLWriter extends AbstractGraphExporter implements GraphExportable
 {
 	// -----------------------------------------------------------------------------
 	private BufferedWriter file;
 
+	final LogService logger;
+
 	public yEdGraphMLWriter(final String outputGraphMLFile)
 	{
+		this(outputGraphMLFile, new StderrLogService());
+	}
+
+	public yEdGraphMLWriter(final String outputGraphMLFile, final LogService logService)
+	{
+		logger = logService;
 		try {
 			file = new BufferedWriter( new FileWriter( outputGraphMLFile  ) );
 

@@ -3,23 +3,19 @@ package cz.it4i.ulman.transfers;
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
 import org.mastodon.app.ui.ViewMenuBuilder;
-import org.mastodon.mamut.WindowManager;
 import org.mastodon.mamut.plugin.MamutPlugin;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.MamutAppModel;
-import org.mastodon.mamut.project.MamutProject;
 
 import net.imagej.ImageJ;
 import org.scijava.AbstractContextual;
 import org.scijava.command.CommandService;
-import org.scijava.log.LogService;
 import org.scijava.plugin.Plugin;
 import org.scijava.ui.behaviour.util.Actions;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 import org.scijava.ui.behaviour.util.RunnableAction;
 
 import javax.swing.*;
-import java.io.File;
 import java.util.*;
 import java.util.List;
 
@@ -29,9 +25,8 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 {
 	//"IDs" of all plug-ins wrapped in this class
 	private static final String SVopen = "LoPaT-OpenSimViewer";
-	private static final String t2gyEd = "LoPaT-Time2Gen-yEd";
-	private static final String t2gGS  = "LoPaT-Time2Gen-GSOutlook";
-	private static final String t2len  = "LoPaT-LineageLengths";
+	private static final String lineageExports = "LoPaT-LineageExports";
+	private static final String lineageTimes = "LoPaT-LineageLengths";
 	//------------------------------------------------------------------------
 
 	@Override
@@ -42,18 +37,17 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		return Arrays.asList(
 				menu( "Plugins",
 						item( SVopen ),
-						item( t2gyEd ), item ( t2gGS ),
-						item( t2len ) ) );
+						item(lineageExports),
+						item(lineageTimes) ) );
 	}
 
 	/** titles of this plug-in's menu items */
-	private static Map< String, String > menuTexts = new HashMap<>();
+	private final static Map< String, String > menuTexts = new HashMap<>();
 	static
 	{
-		menuTexts.put( SVopen, "Connect to SimViewer" );
-		menuTexts.put( t2gyEd, "Time-decimated lineage to yEd" );
-		menuTexts.put( t2gGS,  "Time-decimated lineage to outlook window" );
-		menuTexts.put( t2len,  "Export lineage lengths" );
+		menuTexts.put(SVopen, "Connect to SimViewer");
+		menuTexts.put(lineageExports, "Exports of the lineage");
+		menuTexts.put(lineageTimes,  "Export lineage lengths");
 	}
 
 	@Override
@@ -65,15 +59,14 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 	private final AbstractNamedAction actionOpen;
 	private final AbstractNamedAction actionLengths;
-	private final AbstractNamedAction actionyEd,actionGS;
+	private final AbstractNamedAction actionLineageExport;
 
 	/** default c'tor: creates Actions available from this plug-in */
 	public FacadeToAllPluginsInHere()
 	{
-		actionOpen    = new RunnableAction( SVopen, this::simviewerConnection );
-		actionLengths = new RunnableAction( t2len,  this::exportLengths );
-		actionyEd     = new RunnableAction( t2gyEd, this::time2Gen2yEd );
-		actionGS      = new RunnableAction( t2gGS,  this::time2Gen2GSwindow );
+		actionOpen    = new RunnableAction(SVopen, this::simviewerConnection );
+		actionLengths = new RunnableAction(lineageTimes, this::exportLengths );
+		actionLineageExport = new RunnableAction(lineageExports, this::exportFullLineage );
 		updateEnabledActions();
 	}
 
@@ -82,10 +75,9 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	public void installGlobalActions( final Actions actions )
 	{
 		final String[] noShortCut = { "not mapped" };
-		actions.namedAction( actionOpen,    "C" );
+		actions.namedAction( actionOpen, noShortCut );
 		actions.namedAction( actionLengths, noShortCut );
-		actions.namedAction( actionyEd,     noShortCut );
-		actions.namedAction( actionGS,      noShortCut );
+		actions.namedAction(actionLineageExport, noShortCut );
 	}
 
 	/** reference to the currently available project in Mastodon */
@@ -104,10 +96,9 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	private void updateEnabledActions()
 	{
 		final MamutAppModel appModel = ( pluginAppModel == null ) ? null : pluginAppModel.getAppModel();
-		actionOpen.setEnabled(    appModel != null );
+		actionOpen.setEnabled( appModel != null );
 		actionLengths.setEnabled( appModel != null );
-		actionyEd.setEnabled(     appModel != null );
-		actionGS.setEnabled(      appModel != null );
+		actionLineageExport.setEnabled( appModel != null );
 	}
 	//------------------------------------------------------------------------
 
@@ -125,43 +116,18 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 			"appModel", pluginAppModel.getAppModel());
 	}
 
-	private void time2Gen2yEd()
+	private void exportFullLineage()
 	{
 		this.getContext().getService(CommandService.class).run(
 			LineageExporter.class, true,
-			"appModel", pluginAppModel.getAppModel(),
-			"logServiceRef", this.getContext().getService(LogService.class).log(),
-			"doyEdExport", true);
-	}
-
-	private void time2Gen2GSwindow()
-	{
-		this.getContext().getService(CommandService.class).run(
-			LineageExporter.class, true,
-			"appModel", pluginAppModel.getAppModel(),
-			"logServiceRef", this.getContext().getService(LogService.class).log(),
-			"doyEdExport", false,
-			"graphMLfile", new File(""));
+			"appModel", pluginAppModel.getAppModel());
 	}
 	//------------------------------------------------------------------------
 
 	public static void main( final String[] args ) throws Exception
 	{
-		//start up our own Fiji/Imagej2
+		//only start up our own Fiji/Imagej2
 		final ImageJ ij = new net.imagej.ImageJ();
 		ij.ui().showUI();
-
-		Locale.setDefault( Locale.US );
-		UIManager.setLookAndFeel( UIManager.getSystemLookAndFeelClassName() );
-
-		/*
-		//final MamutProject project = new MamutProject( null, new File( "x=1000 y=1000 z=100 sx=1 sy=1 sz=10 t=400.dummy" ) );
-		final MamutProject project = new MamutProject(
-				new File( "/Users/ulman/data/p_Johannes/Polyclad/2019-09-06_EcNr2_NLSH2B-GFP_T-OpenSPIM_singleTP.mastodon" ),
-				new File( "/Users/ulman/data/p_Johannes/Polyclad/2019-09-06_EcNr2_NLSH2B-GFP_T-OpenSPIM_singleTP.xml" ) );
-
-		final WindowManager windowManager = new WindowManager(ij.getContext());
-		windowManager.getProjectManager().open(project);
-		*/
 	}
 }
