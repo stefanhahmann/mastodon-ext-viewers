@@ -51,6 +51,10 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		}
 	}
 
+	int nodesCnt;
+	int linesCnt;
+	int linePsCnt;
+
 	boolean isValid = false;
 	boolean isClosed = false;
 
@@ -60,9 +64,10 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		// resources the channel should be shut down when it will no longer be used. If it may be used
 		// again leave it running.
 		try {
-			nodes.onCompleted();
-			lines.onCompleted();
-			linePs.onCompleted();
+			logger.info("nodes: "+nodesCnt+" , lines: "+linesCnt+", linePs: "+linePsCnt);
+			if (linesCnt > 0) lines.onCompleted();
+			if (linePsCnt > 0) linePs.onCompleted();
+			if (nodesCnt > 0) nodes.onCompleted();
 
 			//first, make sure the channel describe itself as "READY"
 			//logger.info("state: "+channel.getState(false).name());
@@ -148,6 +153,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.setRadius(width)
 				.build();
 		nodes.onNext(p);
+		nodesCnt++;
 	}
 
 	@Override
@@ -164,6 +170,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.setRadius(lineRadius)
 				.build();
 		lines.onNext(l);
+		linesCnt++;
 		System.out.println(fromId+" -> "+toId);
 	}
 
@@ -215,6 +222,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.setRadius(lineRadius)
 				.build();
 		linePs.onNext(l);
+		linePsCnt++;
 		System.out.println(fromId+" -> "+toId);
 	}
 
