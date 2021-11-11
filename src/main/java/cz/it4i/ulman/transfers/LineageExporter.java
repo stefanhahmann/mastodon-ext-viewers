@@ -38,6 +38,10 @@ public class LineageExporter implements Command
 			choices = {"no annotation","track durations in frames","track durations in SI units"} )
 	public String exportParams;
 
+	@Parameter(label = "How to export the lineage:",
+			choices = {"with straight lines","with rectangular lines","with own bending position"} )
+	public String exportMode;
+
 	@Parameter(label = "Where to export the lineage:",
 			choices = {"yEd: into .graphml file","Blender: via an online connection","GraphStreamer: in a preview window"} )
 	public String exportTarget;
@@ -51,6 +55,14 @@ public class LineageExporter implements Command
 	@Parameter
 	private CommandService commandService;
 
+	@Parameter
+	private PrefService prefService;
+
+	private void adjustParams(Class dialogClass, Map<String,Object> params) {
+		if (!exportMode.startsWith("with own"))
+			params.put("defaultBendingPointAbsoluteOffsetY", //this does not change the pref-stored value
+					prefService.getInt(dialogClass, "defaultBendingPointAbsoluteOffsetY", -80));
+	}
 
 	@Override
 	public void run()
@@ -60,13 +72,16 @@ public class LineageExporter implements Command
 			Map<String,Object> runParams = new HashMap<>(10);
 
 			if (exportTarget.startsWith("yEd")) {
+				adjustParams(yEdGraphMLWriterDlg.class, runParams);
 				future = commandService.run(yEdGraphMLWriterDlg.class, true, runParams);
 			}
 			else if (exportTarget.startsWith("Blender")) {
 				runParams.put("defaultNodeHeight",10); //to hide this item from the dialog
+				adjustParams(BlenderWriterDlg.class, runParams);
 				future = commandService.run(BlenderWriterDlg.class, true, runParams);
 			}
 			else if (exportTarget.startsWith("GraphStreamer")) {
+				adjustParams(GraphStreamViewerDlg.class, runParams);
 				future = commandService.run(GraphStreamViewerDlg.class, true, runParams);
 			}
 			else logServiceRef.error("Selected unknown export mode, doing nothing.");
@@ -77,7 +92,13 @@ public class LineageExporter implements Command
 				if (!m.isCanceled()) {
 					GraphExportable ge = ((GraphExportableFetcher)m.getCommand()).getUnderlyingGraphExportable();
 					//sanity check....
-					if (ge != null) time2Gen2GraphExportable(ge);
+					if (ge != null) {
+						//some final tuning
+						if (exportMode.startsWith("with rect"))
+							ge.set_defaultBendingPointAbsoluteOffsetY( -ge.get_yLineStep() );
+						//go!
+						time2Gen2GraphExportable(ge);
+					}
 					else throw new IllegalStateException("Dialog "+m.getInfo().getTitle()+" is broken.");
 				}
 				else logServiceRef.info("Dialog canceled, exporting nothing.");
@@ -160,6 +181,8 @@ public class LineageExporter implements Command
 	                         final int xLeftBound,
 	                         final int[] xCoords, final int xCoordsPos)
 	{
+		final boolean doStraightL = exportMode.startsWith("with straight");
+
 		final Spot spot = modelGraph.vertices().createRef(); //aux spot reference
 		final Spot fRef = modelGraph.vertices().createRef(); //spot's ancestor buddy (forward)
 		final Link lRef = modelGraph.edgeRef();              //link reference
@@ -250,10 +273,9 @@ public class LineageExporter implements Command
 						{
 							//edge
 							System.out.print("generation: "+generation+"   ");
-							//ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							                  ,childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1)
-							                );
+							if (doStraightL) ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex()) );
+							else ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex()),
+							                  childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );
 						}
 					}
 					for (int n=0; n < spot.outgoingEdges().size(); ++n)
@@ -263,10 +285,9 @@ public class LineageExporter implements Command
 						{
 							//edge
 							System.out.print("generation: "+generation+"   ");
-							//ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex())
-							                  ,childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1)
-							                );
+							if (doStraightL) ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex()) );
+							else ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex()),
+							                  childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );
 						}
 					}
 				}
