@@ -148,6 +148,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.setRadius(lineRadius)
 				.build();
 		lines.onNext(l);
+		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override
@@ -199,6 +200,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.setRadius(lineRadius)
 				.build();
 		linePs.onNext(l);
+		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override
