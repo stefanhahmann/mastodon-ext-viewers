@@ -3,6 +3,7 @@ package cz.it4i.ulman.transfers.graphexport;
 import cz.it4i.ulman.transfers.graphics.protocol.PointsAndLinesGrpc;
 import cz.it4i.ulman.transfers.graphics.protocol.PointsAndLinesOuterClass;
 import cz.it4i.ulman.transfers.graphics.EmptyIgnoringStreamObservers;
+import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -62,10 +63,25 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 			nodes.onCompleted();
 			lines.onCompleted();
 			linePs.onCompleted();
-			channel.shutdownNow().awaitTermination(30, TimeUnit.SECONDS);
+
+			//first, make sure the channel describe itself as "READY"
+			//logger.info("state: "+channel.getState(false).name());
+			int wantStillWaitTime = 20;
+			while (channel.getState(false) != ConnectivityState.READY && wantStillWaitTime > 0) {
+				int waitingTime = 2;
+				wantStillWaitTime -= waitingTime;
+				Thread.sleep(waitingTime * 1000); //seconds -> milis
+			}
+			//but even when it claims "READY", it still needs some grace time to finish any commencing transfers
+			Thread.sleep( 5000);
+			channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
 		}
-		catch (InterruptedException e)
-		{ /* don't care that waiting was interrupted */ }
+		catch (InterruptedException e) {
+			/* don't care that waiting was interrupted */
+		} catch (StatusRuntimeException e) {
+			logger.warn("RPC client-side failed for "+url
+				+", details follow:\n"+e.getMessage());
+		}
 		isClosed = true;
 	}
 
@@ -153,7 +169,6 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 	@Override
 	public void addStraightLineConnectedVertex(String parentNodeID, String newNodeID, String label, int colorRGB, int x, int y) {
-		if (!isValid) return;
 		addNode(newNodeID, label,colorRGB, x,y);
 		addStraightLine(parentNodeID, newNodeID);
 	}
