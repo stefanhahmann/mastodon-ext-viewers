@@ -13,21 +13,23 @@ import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
 
-import org.scijava.command.CommandModule;
 import org.scijava.plugin.Plugin;
 import org.scijava.plugin.Parameter;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
-import org.scijava.command.DynamicCommand;
+import org.scijava.command.CommandModule;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
+import org.scijava.prefs.PrefService;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 
 @Plugin( type = Command.class, name = "Export lineage with generations axis instead of time axis" )
-public class LineageExporter extends DynamicCommand
+public class LineageExporter implements Command
 {
 	@Parameter(persist = false)
 	private MamutAppModel appModel;
@@ -47,22 +49,25 @@ public class LineageExporter extends DynamicCommand
 	private LogService logServiceRef;
 
 	@Parameter
-	private CommandService commandServiceRef;
+	private CommandService commandService;
+
 
 	@Override
 	public void run()
 	{
 		try {
 			Future<CommandModule> future = null;
+			Map<String,Object> runParams = new HashMap<>(10);
+
 			if (exportTarget.startsWith("yEd")) {
-				future = commandServiceRef.run(yEdGraphMLWriterDlg.class, true);
+				future = commandService.run(yEdGraphMLWriterDlg.class, true, runParams);
 			}
 			else if (exportTarget.startsWith("Blender")) {
-				future = commandServiceRef.run(BlenderWriterDlg.class, true,
-						"defaultNodeHeight",10);
+				runParams.put("defaultNodeHeight",10); //to hide this item from the dialog
+				future = commandService.run(BlenderWriterDlg.class, true, runParams);
 			}
 			else if (exportTarget.startsWith("GraphStreamer")) {
-				future = commandServiceRef.run(GraphStreamViewerDlg.class, true);
+				future = commandService.run(GraphStreamViewerDlg.class, true, runParams);
 			}
 			else logServiceRef.error("Selected unknown export mode, doing nothing.");
 
