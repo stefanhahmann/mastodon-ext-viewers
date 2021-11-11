@@ -58,7 +58,8 @@ public class LineageExporter extends DynamicCommand
 				future = commandServiceRef.run(yEdGraphMLWriterDlg.class, true);
 			}
 			else if (exportMode.startsWith("Blender")) {
-				future = commandServiceRef.run(BlenderWriterDlg.class, true);
+				future = commandServiceRef.run(BlenderWriterDlg.class, true,
+						"defaultNodeHeight",10);
 			}
 			else if (exportMode.startsWith("GraphStreamer")) {
 				future = commandServiceRef.run(GraphStreamViewerDlg.class, true);
