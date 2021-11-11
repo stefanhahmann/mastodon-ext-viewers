@@ -7,8 +7,8 @@ import cz.it4i.ulman.transfers.graphexport.ui.GraphStreamViewerDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.BlenderWriterDlg;
 
 import org.mastodon.spatial.SpatioTemporalIndex;
+import org.mastodon.model.SelectionModel;
 import org.mastodon.mamut.MamutAppModel;
-import org.mastodon.mamut.model.Model;
 import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
@@ -31,6 +31,9 @@ import java.util.concurrent.Future;
 @Plugin( type = Command.class, name = "Export lineage with generations axis instead of time axis" )
 public class LineageExporter implements Command
 {
+	@Parameter(visibility = ItemVisibility.MESSAGE)
+	private final String selectionInfoMsg = "...also of only selected sub-trees.";
+
 	@Parameter(persist = false)
 	private MamutAppModel appModel;
 
@@ -97,7 +100,10 @@ public class LineageExporter implements Command
 						if (exportMode.startsWith("with rect"))
 							ge.set_defaultBendingPointAbsoluteOffsetY( -ge.get_yLineStep() );
 						//go!
-						time2Gen2GraphExportable(ge);
+						selectionModel = appModel.getSelectionModel();
+						isSelectionEmpty = selectionModel.isEmpty();
+						if (isSelectionEmpty) time2Gen2GraphExportable(ge);
+						else time2Gen2GraphExportable_rootsFromSelection(ge);
 					}
 					else throw new IllegalStateException("Dialog "+m.getInfo().getTitle()+" is broken.");
 				}
@@ -110,6 +116,59 @@ public class LineageExporter implements Command
 		}
 	}
 
+	boolean isSelectionEmpty;
+	SelectionModel<Spot, Link> selectionModel;
+
+	private void time2Gen2GraphExportable_rootsFromSelection(final GraphExportable ge)
+	{
+		final ModelGraph modelGraph = appModel.getModel().getGraph();
+		final Link lRef = modelGraph.edgeRef();              //link reference
+		final Spot sRef = modelGraph.vertices().createRef(); //aux spot reference
+
+		int xLeftBound = 0;
+		final int[] xIgnoreCoords = new int[1];
+
+		for (Spot spot : selectionModel.getSelectedVertices())
+		{
+			//find how many _selected_ backward-references (time-wise) this spot has
+			int countBackwardLinks = 0;
+
+			final int time = spot.getTimepoint();
+			for (int n=0; n < spot.incomingEdges().size(); ++n)
+			{
+				spot.incomingEdges().get(n, lRef).getSource( sRef );
+				if (sRef.getTimepoint() < time && selectionModel.isSelected(sRef))
+				{
+					++countBackwardLinks;
+				}
+			}
+			for (int n=0; n < spot.outgoingEdges().size(); ++n)
+			{
+				spot.outgoingEdges().get(n, lRef).getTarget( sRef );
+				if (sRef.getTimepoint() < time && selectionModel.isSelected(sRef))
+				{
+					++countBackwardLinks;
+				}
+			}
+
+			//can this spot be root?
+			if (countBackwardLinks == 0)
+			{
+				logServiceRef.info("Discovered root "+spot.getLabel());
+				xLeftBound += discoverEdge(ge,modelGraph, spot, 0,xLeftBound, xIgnoreCoords,0);
+			}
+
+		}
+
+		modelGraph.vertices().releaseRef(sRef);
+		modelGraph.releaseRef(lRef);
+
+		ge.close();
+
+		logServiceRef.info("generation SELECTED graph rendered");
+		modelGraph.notifyGraphChanged();
+	}
+
 	/** implements the "LineageExporter" functionality */
 	private void time2Gen2GraphExportable(final GraphExportable ge)
 	{
@@ -118,11 +177,10 @@ public class LineageExporter implements Command
 		//shortcuts to the data
 		final int timeFrom = appModel.getMinTimepoint();
 		final int timeTill = appModel.getMaxTimepoint();
-		final Model      model      = appModel.getModel();
-		final ModelGraph modelGraph = model.getGraph();
+		final ModelGraph modelGraph = appModel.getModel().getGraph();
 
 		//aux Mastodon data: shortcuts and caches/proxies
-		final SpatioTemporalIndex< Spot > spots = model.getSpatioTemporalIndex();
+		final SpatioTemporalIndex< Spot > spots = appModel.getModel().getSpatioTemporalIndex();
 		final Link lRef = modelGraph.edgeRef();              //link reference
 		final Spot sRef = modelGraph.vertices().createRef(); //aux spot reference
 
@@ -173,6 +231,10 @@ public class LineageExporter implements Command
 		modelGraph.notifyGraphChanged();
 	}
 
+	private boolean isEligible(Spot s)
+	{
+		return isSelectionEmpty || selectionModel.isSelected(s);
+	}
 
 	/** returns width of the tree induced with the given 'root' */
 	private int discoverEdge(final GraphExportable ge, final ModelGraph modelGraph,
@@ -186,6 +248,7 @@ public class LineageExporter implements Command
 		final Spot spot = modelGraph.vertices().createRef(); //aux spot reference
 		final Spot fRef = modelGraph.vertices().createRef(); //spot's ancestor buddy (forward)
 		final Link lRef = modelGraph.edgeRef();              //link reference
+		final Spot tRef = modelGraph.vertices().createRef(); //tmp reference on spot
 
 		spot.refTo( root );
 
@@ -200,24 +263,26 @@ public class LineageExporter implements Command
 			for (int n=0; n < spot.incomingEdges().size(); ++n)
 			{
 				spot.incomingEdges().get(n, lRef).getSource( fRef );
-				if (fRef.getTimepoint() > time)
+				if (fRef.getTimepoint() > time && isEligible(fRef))
 				{
 					++countForwardLinks;
+					tRef.refTo(fRef); //keep the last used valid reference
 				}
 			}
 			for (int n=0; n < spot.outgoingEdges().size(); ++n)
 			{
 				spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-				if (fRef.getTimepoint() > time)
+				if (fRef.getTimepoint() > time && isEligible(fRef))
 				{
 					++countForwardLinks;
+					tRef.refTo(fRef);
 				}
 			}
 
 			if (countForwardLinks == 1)
 			{
 				//just a vertex on "a string", move over it
-				spot.refTo( fRef );
+				spot.refTo( tRef );
 			}
 			else
 			{
@@ -232,7 +297,7 @@ public class LineageExporter implements Command
 					for (int n=0; n < spot.incomingEdges().size(); ++n)
 					{
 						spot.incomingEdges().get(n, lRef).getSource( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							xRightBound += discoverEdge(ge,modelGraph, fRef, generation+1,xRightBound, childrenXcoords,childCnt);
 							++childCnt;
@@ -241,7 +306,7 @@ public class LineageExporter implements Command
 					for (int n=0; n < spot.outgoingEdges().size(); ++n)
 					{
 						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							xRightBound += discoverEdge(ge,modelGraph, fRef, generation+1,xRightBound, childrenXcoords,childCnt);
 							++childCnt;
@@ -269,7 +334,7 @@ public class LineageExporter implements Command
 					for (int n=0; n < spot.incomingEdges().size(); ++n)
 					{
 						spot.incomingEdges().get(n, lRef).getSource( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							//edge
 							System.out.print("generation: "+generation+"   ");
@@ -281,7 +346,7 @@ public class LineageExporter implements Command
 					for (int n=0; n < spot.outgoingEdges().size(); ++n)
 					{
 						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-						if (fRef.getTimepoint() > time)
+						if (fRef.getTimepoint() > time && isEligible(fRef))
 						{
 							//edge
 							System.out.print("generation: "+generation+"   ");
@@ -300,6 +365,7 @@ public class LineageExporter implements Command
 				//clean up first before exiting
 				modelGraph.vertices().releaseRef(spot);
 				modelGraph.vertices().releaseRef(fRef);
+				modelGraph.vertices().releaseRef(tRef);
 				modelGraph.releaseRef(lRef);
 
 				return (xRightBound - xLeftBound);
