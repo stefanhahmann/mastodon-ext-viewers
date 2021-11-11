@@ -24,6 +24,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	private StreamObserver<PointsAndLinesOuterClass.LineWithPositions> linePs;
 	private ManagedChannel channel;
 	private final String url;
+	final LogService logger;
 
 	public BlenderWriter(final String hostAndPort)
 	{
@@ -33,6 +34,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	public BlenderWriter(final String hostAndPort, LogService logService)
 	{
 		url = hostAndPort;
+		logger = logService;
 
 		try {
 			channel = ManagedChannelBuilder.forTarget(url).usePlaintext().build();
@@ -43,7 +45,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 			linePs = comm.sendLineWithPos(getNoResponseExpectedObj());
 			isValid = true;
 		} catch (StatusRuntimeException e) {
-			logService.warn("RPC client-side failed while accessing "+url
+			logger.warn("RPC client-side failed while accessing "+url
 				+", details follow:\n"+e.getMessage());
 		}
 	}

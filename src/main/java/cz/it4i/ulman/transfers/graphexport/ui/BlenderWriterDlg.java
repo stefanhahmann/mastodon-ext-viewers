@@ -2,6 +2,7 @@ package cz.it4i.ulman.transfers.graphexport.ui;
 
 import cz.it4i.ulman.transfers.graphexport.BlenderWriter;
 import org.scijava.command.Command;
+import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
@@ -18,10 +19,13 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 		description = "Provide always in the form hostname:port number.")
 	String url = "localhost:9081";
 
+	@Parameter
+	LogService logService;
+
 	// ------ after all options are set, the workhorse is to be created here ------
 	@Override
 	public void run() {
-		final BlenderWriter bw = new BlenderWriter(url);
+		final BlenderWriter bw = new BlenderWriter(url,logService);
 		bw.lineRadius = defaultLineWidth / 2.f;
 		bw.z_coord = defaultZCoord;
 		//
