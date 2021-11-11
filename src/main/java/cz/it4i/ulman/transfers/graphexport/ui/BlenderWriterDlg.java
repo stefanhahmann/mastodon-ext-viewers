@@ -10,7 +10,7 @@ import org.scijava.plugin.Plugin;
 public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Command {
 	// ------ options and setup of this particular export mode ------
 	@Parameter(label = "Connecting line width:")
-	float defaultLineWidth = 10;
+	float defaultLineWidth = 5;
 
 	@Parameter(label = "Use this Z-position:")
 	float defaultZCoord = 0;
@@ -18,6 +18,12 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	@Parameter(label = "Address of the listening Blender:",
 		description = "Provide always in the form hostname:port number.")
 	String url = "localhost:9081";
+
+	@Override
+	void provideDefaults() {
+		xColumnWidth = 100;
+		defaultNodeWidth = 20;
+	}
 
 	@Parameter
 	LogService logService;

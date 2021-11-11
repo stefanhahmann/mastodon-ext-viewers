@@ -14,10 +14,10 @@ public abstract class AbstractGraphExportableDlg implements GraphExportableFetch
 	int defaultBendingPointAbsoluteOffsetY = -80;
 
 	@Parameter
-	int defaultNodeWidth  = 30;
+	int defaultNodeWidth  = 15;
 
 	@Parameter
-	int defaultNodeHeight = 30;
+	int defaultNodeHeight = 15;
 
 	@Parameter(description = "RGB value in the hexadecimal format; 00 is black, FF is white")
 	int defaultNodeColour = 0xCCCCCC;

@@ -10,8 +10,6 @@ public class GraphStreamViewerDlg extends AbstractGraphExportableDlg implements 
 	@Override
 	void provideDefaults() {
 		xColumnWidth = 300;
-		defaultNodeWidth = 15;
-		defaultNodeHeight = 15;
 	}
 
 	// ------ after all options are set, the workhorse is to be created here ------
