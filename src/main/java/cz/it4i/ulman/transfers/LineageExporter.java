@@ -5,8 +5,9 @@ import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
 import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.GraphStreamViewerDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.BlenderWriterDlg;
-import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSorter;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.TriangleSorterDlg;
 
 import org.mastodon.collection.RefList;
 import org.mastodon.collection.ref.RefArrayList;
@@ -46,6 +47,10 @@ public class LineageExporter implements Command
 			choices = {"no annotation","track durations in frames","track durations in SI units"} )
 	public String exportParams;
 
+	@Parameter(label = "How to sort the lineage:",
+			choices = {"as in TrackScheme","alphanumeric on labels","triangle method"} )
+	public String sortMode;
+
 	@Parameter(label = "How to export the lineage:",
 			choices = {"with straight lines","with rectangular lines","with own bending position"} )
 	public String exportMode;
@@ -76,6 +81,24 @@ public class LineageExporter implements Command
 	public void run()
 	{
 		try {
+			//first: do we have some extra dialogs to take care of?
+			sorterOfDaughters = null; //intentionally indicates a problem...
+			if (sortMode.startsWith("alphanumeric")) {
+				sorterOfDaughters = new AbstractDescendantsSorter();
+			}
+			else if (sortMode.startsWith("triangle")) {
+				final CommandModule m = commandService
+						.run(TriangleSorterDlg.class, true, "appModel", appModel)
+						.get();
+				if (!m.isCanceled()) sorterOfDaughters = ((TriangleSorterDlg)m.getCommand()).sorter;
+			}
+			else sorterOfDaughters = listOfDaughters -> {}; //"as in TrackScheme" -> no sorting on our side
+
+			if (sorterOfDaughters == null) {
+				logServiceRef.info("Dialog canceled or some dialog error, exporting nothing.");
+				return;
+			}
+
 			Future<CommandModule> future = null;
 			Map<String,Object> runParams = new HashMap<>(10);
 
@@ -241,7 +264,7 @@ public class LineageExporter implements Command
 		return isSelectionEmpty || selectionModel.isSelected(s);
 	}
 
-	DescendantsSorter sorterOfDaughters = new AbstractDescendantsSorter(); //TODO bring upstream to menu!
+	private DescendantsSorter sorterOfDaughters;
 
 	/** returns width of the tree induced with the given 'root' */
 	private int discoverEdge(final GraphExportable ge, final ModelGraph modelGraph,

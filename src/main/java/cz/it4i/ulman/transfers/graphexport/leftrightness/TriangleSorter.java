@@ -39,6 +39,8 @@ public class TriangleSorter extends AbstractDescendantsSorter {
 		this.comparator = new Comparator<Spot>() {
 			@Override
 			public int compare(Spot d1, Spot d2) {
+				if (d1.equals(d2)) return 0;
+
 				final Vector3d d1pos = createVector3d(d1);
 				final Vector3d d2pos = createVector3d(d2);
 
