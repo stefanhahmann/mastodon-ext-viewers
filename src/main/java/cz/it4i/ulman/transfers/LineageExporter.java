@@ -7,6 +7,7 @@ import cz.it4i.ulman.transfers.graphexport.ui.GraphStreamViewerDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.BlenderWriterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSorter;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.PolesSorterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.TriangleSorterDlg;
 
 import org.mastodon.collection.RefList;
@@ -48,7 +49,7 @@ public class LineageExporter implements Command
 	public String exportParams;
 
 	@Parameter(label = "How to sort the lineage:",
-			choices = {"as in TrackScheme","alphanumeric on labels","triangle method"} )
+			choices = {"as in TrackScheme","alphanumeric on labels","poles method","triangle method"} )
 	public String sortMode;
 
 	@Parameter(label = "How to export the lineage:",
@@ -82,9 +83,15 @@ public class LineageExporter implements Command
 	{
 		try {
 			//first: do we have some extra dialogs to take care of?
-			sorterOfDaughters = null; //intentionally indicates a problem...
+			sorterOfDaughters = null; //intentionally, indicates a problem...
 			if (sortMode.startsWith("alphanumeric")) {
 				sorterOfDaughters = new AbstractDescendantsSorter();
+			}
+			else if (sortMode.startsWith("poles")) {
+				final CommandModule m = commandService
+						.run(PolesSorterDlg.class, true, "appModel", appModel)
+						.get();
+				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
 			}
 			else if (sortMode.startsWith("triangle")) {
 				final CommandModule m = commandService
