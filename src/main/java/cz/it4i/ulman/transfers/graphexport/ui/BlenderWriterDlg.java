@@ -15,6 +15,9 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	@Parameter(label = "Use this Z-position:")
 	float defaultZCoord = 0;
 
+	@Parameter(label = "Nickname of this Mastodon instance:")
+	String dataNickname = "Mastodon1";
+
 	@Parameter(label = "Address of the listening Blender:",
 		description = "Provide always in the form hostname:port number.")
 	String url = "localhost:9081";
@@ -34,6 +37,7 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 		final BlenderWriter bw = new BlenderWriter(url,logService);
 		bw.lineRadius = defaultLineWidth / 2.f;
 		bw.z_coord = defaultZCoord;
+		bw.sendMessage(dataNickname);
 		//
 		worker = bw;
 	}

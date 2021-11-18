@@ -23,6 +23,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	private StreamObserver<PointsAndLinesOuterClass.PointAsBall> nodes;
 	private StreamObserver<PointsAndLinesOuterClass.LineWithIDs> lines;
 	private StreamObserver<PointsAndLinesOuterClass.LineWithPositions> linePs;
+	private PointsAndLinesGrpc.PointsAndLinesStub comm;
 	private ManagedChannel channel;
 	private final String url;
 	final LogService logger;
@@ -39,7 +40,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 		try {
 			channel = ManagedChannelBuilder.forTarget(url).usePlaintext().build();
-			PointsAndLinesGrpc.PointsAndLinesStub comm = PointsAndLinesGrpc.newStub(channel);
+			comm = PointsAndLinesGrpc.newStub(channel);
 
 			nodes = comm.sendBall(getNoResponseExpectedObj());
 			lines = comm.sendLineWithIDs(getNoResponseExpectedObj());
@@ -94,6 +95,13 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	{
 		// don't forget to close()... and clean up
 		if (!isClosed) close();
+	}
+	// -----------------------------------------------------------------------------
+
+	public void sendMessage(final String message)
+	{
+		comm.sendTick(PointsAndLinesOuterClass.TickMessage.newBuilder()
+			.setMessage(message).build(), getNoResponseExpectedObj());
 	}
 	// -----------------------------------------------------------------------------
 
