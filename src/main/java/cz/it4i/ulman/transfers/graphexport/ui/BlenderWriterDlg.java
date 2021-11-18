@@ -22,7 +22,7 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	@Override
 	void provideDefaults() {
 		xColumnWidth = 100;
-		defaultNodeWidth = 20;
+		defaultNodeWidth = 15;
 	}
 
 	@Parameter
