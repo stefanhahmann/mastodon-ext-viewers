@@ -120,7 +120,9 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		this.getContext().getService(CommandService.class).run(
 			LineageExporter.class, true,
-			"appModel", pluginAppModel.getAppModel());
+			"appModel", pluginAppModel.getAppModel(),
+				"projectID", pluginAppModel.getWindowManager().getProjectManager()
+						.getProject().getProjectRoot().getName());
 	}
 	//------------------------------------------------------------------------
 

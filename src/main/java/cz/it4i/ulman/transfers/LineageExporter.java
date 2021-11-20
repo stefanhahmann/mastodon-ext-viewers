@@ -43,6 +43,10 @@ public class LineageExporter implements Command
 
 	@Parameter(persist = false)
 	private MamutAppModel appModel;
+	//
+	//optional ID to distinguish among Mastodon projects
+	@Parameter(persist = false, required = false)
+	private String projectID = "default";
 
 	@Parameter(label = "How to annotate the exported lineage:",
 			choices = {"no annotation","track durations in frames","track durations in SI units"} )
@@ -89,13 +93,17 @@ public class LineageExporter implements Command
 			}
 			else if (sortMode.startsWith("poles")) {
 				final CommandModule m = commandService
-						.run(PolesSorterDlg.class, true, "appModel", appModel)
+						.run(PolesSorterDlg.class, true,
+								"appModel", appModel,
+								"projectID",projectID)
 						.get();
 				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
 			}
 			else if (sortMode.startsWith("triangle")) {
 				final CommandModule m = commandService
-						.run(TriangleSorterDlg.class, true, "appModel", appModel)
+						.run(TriangleSorterDlg.class, true,
+								"appModel", appModel,
+								"projectID",projectID)
 						.get();
 				if (!m.isCanceled()) sorterOfDaughters = ((TriangleSorterDlg)m.getCommand()).sorter;
 			}
@@ -115,6 +123,7 @@ public class LineageExporter implements Command
 			}
 			else if (exportTarget.startsWith("Blender")) {
 				runParams.put("defaultNodeHeight",10); //to hide this item from the dialog
+				runParams.put("projectID", projectID);
 				adjustParams(BlenderWriterDlg.class, runParams);
 				future = commandService.run(BlenderWriterDlg.class, true, runParams);
 			}
