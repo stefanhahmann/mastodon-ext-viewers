@@ -5,7 +5,13 @@ import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
 import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.GraphStreamViewerDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.BlenderWriterDlg;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSorter;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.PolesSorterDlg;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.TriangleSorterDlg;
 
+import org.mastodon.collection.RefList;
+import org.mastodon.collection.ref.RefArrayList;
 import org.mastodon.spatial.SpatioTemporalIndex;
 import org.mastodon.model.SelectionModel;
 import org.mastodon.mamut.MamutAppModel;
@@ -22,6 +28,7 @@ import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.prefs.PrefService;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
@@ -36,10 +43,18 @@ public class LineageExporter implements Command
 
 	@Parameter(persist = false)
 	private MamutAppModel appModel;
+	//
+	//optional ID to distinguish among Mastodon projects
+	@Parameter(persist = false, required = false)
+	private String projectID = "default";
 
 	@Parameter(label = "How to annotate the exported lineage:",
 			choices = {"no annotation","track durations in frames","track durations in SI units"} )
 	public String exportParams;
+
+	@Parameter(label = "How to sort the lineage:",
+			choices = {"as in TrackScheme","alphanumeric on labels","poles method","triangle method"} )
+	public String sortMode;
 
 	@Parameter(label = "How to export the lineage:",
 			choices = {"with straight lines","with rectangular lines","with own bending position"} )
@@ -71,6 +86,34 @@ public class LineageExporter implements Command
 	public void run()
 	{
 		try {
+			//first: do we have some extra dialogs to take care of?
+			sorterOfDaughters = null; //intentionally, indicates a problem...
+			if (sortMode.startsWith("alphanumeric")) {
+				sorterOfDaughters = new AbstractDescendantsSorter();
+			}
+			else if (sortMode.startsWith("poles")) {
+				final CommandModule m = commandService
+						.run(PolesSorterDlg.class, true,
+								"appModel", appModel,
+								"projectID",projectID)
+						.get();
+				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
+			}
+			else if (sortMode.startsWith("triangle")) {
+				final CommandModule m = commandService
+						.run(TriangleSorterDlg.class, true,
+								"appModel", appModel,
+								"projectID",projectID)
+						.get();
+				if (!m.isCanceled()) sorterOfDaughters = ((TriangleSorterDlg)m.getCommand()).sorter;
+			}
+			else sorterOfDaughters = listOfDaughters -> {}; //"as in TrackScheme" -> no sorting on our side
+
+			if (sorterOfDaughters == null) {
+				logServiceRef.info("Dialog canceled or some dialog error, exporting nothing.");
+				return;
+			}
+
 			Future<CommandModule> future = null;
 			Map<String,Object> runParams = new HashMap<>(10);
 
@@ -80,6 +123,7 @@ public class LineageExporter implements Command
 			}
 			else if (exportTarget.startsWith("Blender")) {
 				runParams.put("defaultNodeHeight",10); //to hide this item from the dialog
+				runParams.put("projectID", projectID);
 				adjustParams(BlenderWriterDlg.class, runParams);
 				future = commandService.run(BlenderWriterDlg.class, true, runParams);
 			}
@@ -236,6 +280,8 @@ public class LineageExporter implements Command
 		return isSelectionEmpty || selectionModel.isSelected(s);
 	}
 
+	private DescendantsSorter sorterOfDaughters;
+
 	/** returns width of the tree induced with the given 'root' */
 	private int discoverEdge(final GraphExportable ge, final ModelGraph modelGraph,
 	                         final Spot root,
@@ -249,9 +295,9 @@ public class LineageExporter implements Command
 		final Spot fRef = modelGraph.vertices().createRef(); //spot's ancestor buddy (forward)
 		final Link lRef = modelGraph.edgeRef();              //link reference
 		final Spot tRef = modelGraph.vertices().createRef(); //tmp reference on spot
+		final RefList<Spot> daughterList = new RefArrayList(modelGraph.vertices().getRefPool(),3);
 
 		spot.refTo( root );
-
 		while (true)
 		{
 			//shortcut to the time of the current node/spot
@@ -292,25 +338,26 @@ public class LineageExporter implements Command
 				//we're leaf or branching point
 				if (countForwardLinks > 1)
 				{
-					int childCnt = 0;
-					//branching point -> enumerate all ancestors and restart searches from them
+					//branching point -> enumerate all descendants and restart searches from them
+					daughterList.clear();
 					for (int n=0; n < spot.incomingEdges().size(); ++n)
 					{
 						spot.incomingEdges().get(n, lRef).getSource( fRef );
-						if (fRef.getTimepoint() > time && isEligible(fRef))
-						{
-							xRightBound += discoverEdge(ge,modelGraph, fRef, generation+1,xRightBound, childrenXcoords,childCnt);
-							++childCnt;
-						}
+						if (fRef.getTimepoint() > time && isEligible(fRef)) daughterList.add(fRef);
 					}
 					for (int n=0; n < spot.outgoingEdges().size(); ++n)
 					{
 						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-						if (fRef.getTimepoint() > time && isEligible(fRef))
-						{
-							xRightBound += discoverEdge(ge,modelGraph, fRef, generation+1,xRightBound, childrenXcoords,childCnt);
-							++childCnt;
-						}
+						if (fRef.getTimepoint() > time && isEligible(fRef)) daughterList.add(fRef);
+					}
+					sorterOfDaughters.sort(daughterList);
+
+					//process the daughters in the given order
+					int childCnt = 0;
+					final Iterator<Spot> iter = daughterList.iterator();
+					while (iter.hasNext()) {
+						xRightBound += discoverEdge(ge,modelGraph, iter.next(), generation+1,xRightBound, childrenXcoords,childCnt);
+						++childCnt;
 					}
 				}
 				else
@@ -331,29 +378,14 @@ public class LineageExporter implements Command
 				{
 					int childCnt = 0;
 					//enumerate all ancestors (children) and connect them (to this parent)
-					for (int n=0; n < spot.incomingEdges().size(); ++n)
-					{
-						spot.incomingEdges().get(n, lRef).getSource( fRef );
-						if (fRef.getTimepoint() > time && isEligible(fRef))
-						{
-							//edge
-							System.out.print("generation: "+generation+"   ");
-							if (doStraightL) ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex()) );
-							else ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex()),
-							                  childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );
-						}
-					}
-					for (int n=0; n < spot.outgoingEdges().size(); ++n)
-					{
-						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
-						if (fRef.getTimepoint() > time && isEligible(fRef))
-						{
-							//edge
-							System.out.print("generation: "+generation+"   ");
-							if (doStraightL) ge.addStraightLine( rootID, Integer.toString(fRef.getInternalPoolIndex()) );
-							else ge.addBendedLine( rootID, Integer.toString(fRef.getInternalPoolIndex()),
-							                  childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );
-						}
+					final Iterator<Spot> iter = daughterList.iterator();
+					while (iter.hasNext()) {
+						//edge
+						System.out.print("generation: "+generation+"   ");
+						final String toID = Integer.toString(iter.next().getInternalPoolIndex());
+						if (doStraightL) ge.addStraightLine( rootID, toID );
+						else ge.addBendedLine( rootID, toID,
+								childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );
 					}
 				}
 				else
