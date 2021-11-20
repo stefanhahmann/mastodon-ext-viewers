@@ -1,5 +1,6 @@
 package cz.it4i.ulman.transfers;
 
+import cz.it4i.ulman.transfers.graphexport.BlenderWriter;
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
 import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
@@ -63,6 +64,11 @@ public class LineageExporter implements Command
 
 	@Parameter(visibility = ItemVisibility.MESSAGE)
 	private final String exportInfoMsg = "An export-specific dialog may open after 'OK'";
+
+	@Parameter
+	private boolean doDebugMessages = false;
+	@Parameter
+	private boolean doDebugGraphics = false;
 
 	@Parameter
 	private LogService logServiceRef;
@@ -139,6 +145,12 @@ public class LineageExporter implements Command
 						//some final tuning
 						if (exportMode.startsWith("with rect"))
 							ge.set_defaultBendingPointAbsoluteOffsetY( -ge.get_yLineStep() );
+						//go!... wait! debug first!
+						if (doDebugGraphics && ge instanceof BlenderWriter &&
+							sorterOfDaughters instanceof AbstractDescendantsSorter) {
+								ownLogger.warn("Sending debug graphics first!");
+								((AbstractDescendantsSorter)sorterOfDaughters).exportDebugGraphics(ge);
+						}
 						//go!
 						selectionModel = appModel.getSelectionModel();
 						isSelectionEmpty = selectionModel.isEmpty();
@@ -346,7 +358,8 @@ public class LineageExporter implements Command
 						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
 						if (fRef.getTimepoint() > time && isEligible(fRef)) daughterList.add(fRef);
 					}
-					sorterOfDaughters.sort(daughterList);
+					if (doDebugMessages) sorterOfDaughters.sort(daughterList,ownLogger);
+					else sorterOfDaughters.sort(daughterList);
 
 					//process the daughters in the given order
 					int childCnt = 0;
