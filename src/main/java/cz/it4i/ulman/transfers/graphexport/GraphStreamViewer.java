@@ -57,7 +57,6 @@ public class GraphStreamViewer extends AbstractGraphExporter implements GraphExp
 	public void addStraightLine(final String fromId, final String toId)
 	{
 		graph.addEdge(fromId.concat(toId), fromId, toId);
-		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override
@@ -90,7 +89,6 @@ public class GraphStreamViewer extends AbstractGraphExporter implements GraphExp
 
 		graph.addEdge( fromId.concat( benderNodeID ), fromId, benderNodeID );
 		graph.addEdge( benderNodeID.concat( toId ),   benderNodeID, toId );
-		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override

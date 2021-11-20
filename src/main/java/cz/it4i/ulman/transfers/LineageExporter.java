@@ -398,8 +398,8 @@ public class LineageExporter implements Command
 					final Iterator<Spot> iter = daughterList.iterator();
 					while (iter.hasNext()) {
 						//edge
-						ownLogger.info("generation: "+generation+"   ");
 						final String toID = Integer.toString(iter.next().getInternalPoolIndex());
+						ownLogger.info("generation: "+generation+"   "+rootID+" -> "+toID);
 						if (doStraightL) ge.addStraightLine( rootID, toID );
 						else ge.addBendedLine( rootID, toID,
 								childrenXcoords[childCnt++],ge.get_yLineStep()*(generation+1) );

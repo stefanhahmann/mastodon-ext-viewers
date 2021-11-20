@@ -164,7 +164,6 @@ public class yEdGraphMLWriter extends AbstractGraphExporter implements GraphExpo
 	public void addStraightLine(final String fromId, final String toId)
 	{
 		writeEdge(fromId.concat(toId), fromId, toId);
-		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override
@@ -190,7 +189,6 @@ public class yEdGraphMLWriter extends AbstractGraphExporter implements GraphExpo
 	                          final int toX, final int toY, final int bendingOffsetY)
 	{
 		writeEdge(fromId.concat(toId), fromId, toId, toX+defaultNodeWidth/2,toY+bendingOffsetY);
-		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override

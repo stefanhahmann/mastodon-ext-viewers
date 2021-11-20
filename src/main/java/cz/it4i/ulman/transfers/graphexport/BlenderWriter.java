@@ -179,7 +179,6 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.build();
 		lines.onNext(l);
 		linesCnt++;
-		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override
@@ -231,7 +230,6 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.build();
 		linePs.onNext(l);
 		linePsCnt++;
-		System.out.println(fromId+" -> "+toId);
 	}
 
 	@Override
