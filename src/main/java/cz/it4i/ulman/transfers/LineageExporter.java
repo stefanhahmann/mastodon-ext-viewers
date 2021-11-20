@@ -93,13 +93,17 @@ public class LineageExporter implements Command
 			}
 			else if (sortMode.startsWith("poles")) {
 				final CommandModule m = commandService
-						.run(PolesSorterDlg.class, true, "appModel", appModel)
+						.run(PolesSorterDlg.class, true,
+								"appModel", appModel,
+								"projectID",projectID)
 						.get();
 				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
 			}
 			else if (sortMode.startsWith("triangle")) {
 				final CommandModule m = commandService
-						.run(TriangleSorterDlg.class, true, "appModel", appModel)
+						.run(TriangleSorterDlg.class, true,
+								"appModel", appModel,
+								"projectID",projectID)
 						.get();
 				if (!m.isCanceled()) sorterOfDaughters = ((TriangleSorterDlg)m.getCommand()).sorter;
 			}
