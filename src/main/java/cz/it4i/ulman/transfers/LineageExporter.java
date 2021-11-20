@@ -43,6 +43,10 @@ public class LineageExporter implements Command
 
 	@Parameter(persist = false)
 	private MamutAppModel appModel;
+	//
+	//optional ID to distinguish among Mastodon projects
+	@Parameter(persist = false, required = false)
+	private String projectID = "default";
 
 	@Parameter(label = "How to annotate the exported lineage:",
 			choices = {"no annotation","track durations in frames","track durations in SI units"} )
