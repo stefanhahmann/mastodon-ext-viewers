@@ -1,5 +1,6 @@
 package cz.it4i.ulman.transfers.graphexport.leftrightness;
 
+import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import org.joml.Vector3d;
 import org.mastodon.mamut.model.Spot;
 
@@ -121,5 +122,14 @@ public class TriangleSorter extends AbstractDescendantsSorter {
 	Vector3d createVector3d(final Spot s)
 	{
 		return new Vector3d( s.getDoublePosition(0), s.getDoublePosition(1), s.getDoublePosition(2) );
+	}
+
+	@Override
+	public void exportDebugGraphics(final GraphExportable ge)
+	{
+		ge.addNode("Centre","centre at "+printVector(centre), 0, 0,0);
+		ge.addNode("A","A at "+printVector(axisA,100), 0, 0,0);
+		ge.addNode("B","B at "+printVector(axisB,100), 0, 0,0);
+		ge.addNode("C","C at "+printVector(axisC,100), 0, 0,0);
 	}
 }

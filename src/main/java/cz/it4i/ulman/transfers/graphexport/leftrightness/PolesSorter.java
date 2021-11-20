@@ -1,5 +1,6 @@
 package cz.it4i.ulman.transfers.graphexport.leftrightness;
 
+import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import org.joml.Vector3d;
 import org.mastodon.mamut.model.Spot;
 
@@ -39,6 +40,10 @@ public class PolesSorter extends AbstractDescendantsSorter {
 	{
 		centre = createVector3d(spotAtCentre);
 		axisUp = createVector3d(spotNorth).sub(createVector3d(spotSouth)).normalize();
+
+		//memorize for this.exportDebugGraphics()
+		this.spotSouth = spotSouth;
+		this.spotNorth = spotNorth;
 
 		final double radToDegFactor = 180.0 / Math.PI;
 
@@ -95,4 +100,13 @@ public class PolesSorter extends AbstractDescendantsSorter {
 	{
 		return new Vector3d( s.getDoublePosition(0), s.getDoublePosition(1), s.getDoublePosition(2) );
 	}
+
+	@Override
+	public void exportDebugGraphics(final GraphExportable ge)
+	{
+		ge.addNode("Centre","centre at "+printVector(centre), 0, 0,0);
+		ge.addNode("South","south at "+printVector(createVector3d(spotSouth),1), 0, 0,0);
+		ge.addNode("North","north at "+printVector(createVector3d(spotNorth),1), 0, 0,0);
+	}
+	private final Spot spotSouth,spotNorth;
 }
