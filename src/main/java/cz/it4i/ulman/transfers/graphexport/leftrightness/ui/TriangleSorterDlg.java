@@ -45,9 +45,9 @@ public class TriangleSorterDlg implements Command {
 	private PrefService ps;
 	//
 	void loadParams() {
-		spotCentreName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotCentreName","--choose spot label--");
-		spotAName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotAName","--choose spot label--");
-		spotBName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotBName","--choose spot label--");
+		spotCentreName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotCentreName","--type in spot label--");
+		spotAName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotAName","--type in spot label--");
+		spotBName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotBName","--type in spot label--");
 	}
 	void storeParams() {
 		PerProjectPrefsService.storeStringParam(ps,this.getClass(),projectID,"spotCentreName",spotCentreName);

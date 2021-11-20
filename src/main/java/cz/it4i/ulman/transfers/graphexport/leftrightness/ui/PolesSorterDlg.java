@@ -48,9 +48,9 @@ public class PolesSorterDlg implements Command {
 	private PrefService ps;
 	//
 	void loadParams() {
-		spotCentreName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotCentreName","--choose spot label--");
-		spotSouthPoleName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotSouthPoleName","--choose spot label--");
-		spotNorthPoleName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotNorthPoleName","--choose spot label--");
+		spotCentreName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotCentreName","--type in spot label--");
+		spotSouthPoleName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotSouthPoleName","--type in spot label--");
+		spotNorthPoleName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotNorthPoleName","--type in spot label--");
 	}
 	void storeParams() {
 		PerProjectPrefsService.storeStringParam(ps,this.getClass(),projectID,"spotCentreName",spotCentreName);
@@ -74,13 +74,13 @@ public class PolesSorterDlg implements Command {
 
 		final Optional<Spot> spotS = vertices.stream().filter(s -> s.getLabel().equals(spotSouthPoleName)).findFirst();
 		if (!spotS.isPresent()) {
-			logService.error("Couldn't find (A) spot with label "+spotSouthPoleName);
+			logService.error("Couldn't find (south pole) spot with label "+spotSouthPoleName);
 			return;
 		}
 
 		final Optional<Spot> spotN = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
 		if (!spotN.isPresent()) {
-			logService.error("Couldn't find (B) spot with label "+spotNorthPoleName);
+			logService.error("Couldn't find (north pole) spot with label "+spotNorthPoleName);
 			return;
 		}
 

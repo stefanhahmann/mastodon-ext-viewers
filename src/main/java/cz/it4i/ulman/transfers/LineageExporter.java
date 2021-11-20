@@ -94,7 +94,6 @@ public class LineageExporter implements Command
 	public void run()
 	{
 		try {
-			final String projectID = "REMOVE ME AFTER MERGING BRANCHES";
 			ownLogger = logServiceRef.subLogger("Lineage exports in "+projectID);
 
 			//first: do we have some extra dialogs to take care of?
