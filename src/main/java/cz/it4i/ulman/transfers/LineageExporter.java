@@ -119,6 +119,7 @@ public class LineageExporter implements Command
 			}
 			else if (exportTarget.startsWith("Blender")) {
 				runParams.put("defaultNodeHeight",10); //to hide this item from the dialog
+				runParams.put("projectID", projectID);
 				adjustParams(BlenderWriterDlg.class, runParams);
 				future = commandService.run(BlenderWriterDlg.class, true, runParams);
 			}
