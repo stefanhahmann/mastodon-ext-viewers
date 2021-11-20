@@ -47,51 +47,131 @@ public class PolesSorter extends AbstractDescendantsSorter {
 
 		final double radToDegFactor = 180.0 / Math.PI;
 
-		this.comparator = new Comparator<Spot>() {
-			@Override
-			public int compare(Spot d1, Spot d2) {
-				if (d1.equals(d2)) return 0;
+		this.comparator = (d1, d2) -> {
+			if (d1.equals(d2)) return 0;
 
-				final Vector3d d1pos = createVector3d(d1);
-				final Vector3d d2pos = createVector3d(d2);
+			final Vector3d d1pos = createVector3d(d1);
+			final Vector3d d2pos = createVector3d(d2);
 
-				//super useful shortcuts...
-				final Vector3d d1tod2 = new Vector3d(d2pos).sub(d1pos).normalize();
-				final Vector3d d1toc  = new Vector3d(centre).sub(d1pos).normalize();
+			//super useful shortcuts...
+			final Vector3d d1tod2 = new Vector3d(d2pos).sub(d1pos).normalize();
+			final Vector3d d1toc  = new Vector3d(centre).sub(d1pos).normalize();
 
-				//layering:
-				//
-				//check the angle between d1->centre and d1->d2,
-				//does it carry a sign of starting two layers?
-				double angle_d2d1c_deg = Math.acos( d1toc.dot(d1tod2) ) *radToDegFactor;
-				//d2 is closer to centre than d1
-				if (angle_d2d1c_deg <= layeringLowerCutoffAngleDeg) return +1;
+			//layering:
+			//
+			//check the angle between d1->centre and d1->d2,
+			//does it carry a sign of starting two layers?
+			double angle_d2d1c_deg = Math.acos( d1toc.dot(d1tod2) ) *radToDegFactor;
+			//d2 is closer to centre than d1
+			if (angle_d2d1c_deg <= layeringLowerCutoffAngleDeg) return +1;
 				//d1 is closer to centre than d2
-				else if (angle_d2d1c_deg >= layeringUpperCutoffAngleDeg) return -1;
-				//NB: tree of a daughter closer to the centre is drawn first (in left)
+			else if (angle_d2d1c_deg >= layeringUpperCutoffAngleDeg) return -1;
+			//NB: tree of a daughter closer to the centre is drawn first (in left)
 
-				//side-by-side configuration:
-				//
-				//consider a triangle/plane given by d1,d2 and c
-				final Vector3d triangleUp = new Vector3d(d1tod2).cross(d1toc).normalize();
+			//side-by-side configuration:
+			//
+			//consider a triangle/plane given by d1,d2 and c
+			final Vector3d triangleUp = new Vector3d(d1tod2).cross(d1toc).normalize();
 
-				//angle between triangle's normal and up-vector (south-to-north axis)
-				double angle_upsDiff_deg = Math.acos( triangleUp.dot(axisUp) ) *radToDegFactor;
-				if (angle_upsDiff_deg < lrTOupThresholdAngleDeg)
-				{
-					//left-right case, up vectors are nearly parallel
-					//d1 is left d2
-					return -1;
-				}
-				else if (angle_upsDiff_deg > (180-lrTOupThresholdAngleDeg))
-				{
-					//left-right case, up vectors are nearly opposite
-					//d1 is right d2
-					return +1;
-				}
+			//angle between triangle's normal and up-vector (south-to-north axis)
+			double angle_upsDiff_deg = Math.acos( triangleUp.dot(axisUp) ) *radToDegFactor;
+			if (angle_upsDiff_deg < lrTOupThresholdAngleDeg)
+			{
+				//left-right case, up vectors are nearly parallel
+				//d1 is left d2
+				return -1;
+			}
+			else if (angle_upsDiff_deg > (180-lrTOupThresholdAngleDeg))
+			{
+				//left-right case, up vectors are nearly opposite
+				//d1 is right d2
+				return +1;
+			}
 
-				//up-down case                 down  up
-				return d1tod2.dot(axisUp) > 0 ? -1 : +1;
+			//up-down case                 down  up
+			return d1tod2.dot(axisUp) > 0 ? -1 : +1;
+		};
+
+
+		this.verboseComparator = (d1, d2) -> {
+			log.info("Comparing between: "+d1.getLabel()+" and "+d2.getLabel());
+			if (d1.equals(d2)) {
+				log.info("... which are at the same position");
+				return 0;
+			}
+
+			final Vector3d d1pos = createVector3d(d1);
+			final Vector3d d2pos = createVector3d(d2);
+
+			System.out.println("Comparing between: "+d1.getLabel()+" and "+d2.getLabel());
+
+			//super useful shortcuts...
+			final Vector3d d1tod2 = new Vector3d(d2pos).sub(d1pos).normalize();
+			final Vector3d d1toc  = new Vector3d(centre).sub(d1pos).normalize();
+
+			//layering:
+			//
+			//check the angle between d1->centre and d1->d2,
+			//does it carry a sign of starting two layers?
+			double angle_d2d1c_deg = Math.acos( d1toc.dot(d1tod2) ) *radToDegFactor;
+			//d2 is closer to centre than d1
+			if (angle_d2d1c_deg <= layeringLowerCutoffAngleDeg) {
+				System.out.println("  "+d1.getLabel()+" is outer->right of "+d2.getLabel());
+				return +1;
+			}
+			//d1 is closer to centre than d2
+			else if (angle_d2d1c_deg >= layeringUpperCutoffAngleDeg) {
+				System.out.println("  "+d1.getLabel()+" is inner->left of "+d2.getLabel());
+				return -1;
+			}
+			//NB: tree of a daughter closer to the centre is drawn first (in left)
+
+			System.out.println("  layering angle: "+angle_d2d1c_deg);
+
+			//side-by-side configuration:
+			//
+			//consider a triangle/plane given by d1,d2 and c
+			final Vector3d triangleUp = new Vector3d(d1tod2).cross(d1toc).normalize();
+
+			System.out.println("  tUP: "+printVector(triangleUp,100));
+
+			//angle between triangle's normal and up-vector (south-to-north axis)
+			double angle_upsDiff_deg = Math.acos( triangleUp.dot(axisUp) ) *radToDegFactor;
+			if (angle_upsDiff_deg < lrTOupThresholdAngleDeg)
+			{
+				System.out.println("  parallel (diff: "+angle_upsDiff_deg+" deg): "
+						+d1.getLabel()+" is left of "+d2.getLabel());
+
+				//left-right case, up vectors are nearly parallel
+				//d1 is left d2
+				return -1;
+			}
+			else if (angle_upsDiff_deg > (180-lrTOupThresholdAngleDeg))
+			{
+				System.out.println("  opposite (diff: "+(180-angle_upsDiff_deg)+" deg): "
+						+d1.getLabel()+" is right of "+d2.getLabel());
+
+				//left-right case, up vectors are nearly opposite
+				//d1 is right d2
+				return +1;
+			}
+
+			//up-down case
+			System.out.println("  perpendicularity (abs ang: "+angle_upsDiff_deg+" deg), would have said: "
+					+d1.getLabel()+" is "+(angle_upsDiff_deg < 90? "left":"right")+" of "+d2.getLabel());
+			double upDownAngle = d1tod2.dot(axisUp);
+			if (upDownAngle > 0) {
+				//down
+				upDownAngle = Math.acos(upDownAngle) * radToDegFactor;
+				System.out.println("  same orientation (ang: "+(180-upDownAngle)+" deg): "
+						+d1.getLabel()+" is down/left of "+d2.getLabel());
+				return -1;
+			} else {
+				//up
+				upDownAngle = Math.acos(upDownAngle) * radToDegFactor;
+				System.out.println("  opposite orientation (ang: "+upDownAngle+" deg): "
+						+d1.getLabel()+" is up/right of "+d2.getLabel());
+				return +1;
 			}
 		};
 	}
