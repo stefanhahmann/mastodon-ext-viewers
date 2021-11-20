@@ -1,5 +1,6 @@
 package cz.it4i.ulman.transfers;
 
+import cz.it4i.ulman.transfers.graphexport.BlenderWriter;
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
 import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
@@ -19,6 +20,7 @@ import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
 
+import org.scijava.log.Logger;
 import org.scijava.plugin.Plugin;
 import org.scijava.plugin.Parameter;
 import org.scijava.ItemVisibility;
@@ -68,7 +70,13 @@ public class LineageExporter implements Command
 	private final String exportInfoMsg = "An export-specific dialog may open after 'OK'";
 
 	@Parameter
+	private boolean doDebugMessages = false;
+	@Parameter
+	private boolean doDebugGraphics = false;
+
+	@Parameter
 	private LogService logServiceRef;
+	private Logger ownLogger;
 
 	@Parameter
 	private CommandService commandService;
@@ -76,7 +84,7 @@ public class LineageExporter implements Command
 	@Parameter
 	private PrefService prefService;
 
-	private void adjustParams(Class dialogClass, Map<String,Object> params) {
+	private void adjustParams(Class<?> dialogClass, Map<String,Object> params) {
 		if (!exportMode.startsWith("with own"))
 			params.put("defaultBendingPointAbsoluteOffsetY", //this does not change the pref-stored value
 					prefService.getInt(dialogClass, "defaultBendingPointAbsoluteOffsetY", -80));
@@ -86,6 +94,9 @@ public class LineageExporter implements Command
 	public void run()
 	{
 		try {
+			final String projectID = "REMOVE ME AFTER MERGING BRANCHES";
+			ownLogger = logServiceRef.subLogger("Lineage exports in "+projectID);
+
 			//first: do we have some extra dialogs to take care of?
 			sorterOfDaughters = null; //intentionally, indicates a problem...
 			if (sortMode.startsWith("alphanumeric")) {
@@ -143,6 +154,12 @@ public class LineageExporter implements Command
 						//some final tuning
 						if (exportMode.startsWith("with rect"))
 							ge.set_defaultBendingPointAbsoluteOffsetY( -ge.get_yLineStep() );
+						//go!... wait! debug first!
+						if (doDebugGraphics && ge instanceof BlenderWriter &&
+							sorterOfDaughters instanceof AbstractDescendantsSorter) {
+								ownLogger.warn("Sending debug graphics first!");
+								((AbstractDescendantsSorter)sorterOfDaughters).exportDebugGraphics(ge);
+						}
 						//go!
 						selectionModel = appModel.getSelectionModel();
 						isSelectionEmpty = selectionModel.isEmpty();
@@ -198,7 +215,7 @@ public class LineageExporter implements Command
 			//can this spot be root?
 			if (countBackwardLinks == 0)
 			{
-				logServiceRef.info("Discovered root "+spot.getLabel());
+				ownLogger.info("Discovered root "+spot.getLabel());
 				xLeftBound += discoverEdge(ge,modelGraph, spot, 0,xLeftBound, xIgnoreCoords,0);
 			}
 
@@ -209,7 +226,7 @@ public class LineageExporter implements Command
 
 		ge.close();
 
-		logServiceRef.info("generation SELECTED graph rendered");
+		ownLogger.info("generation SELECTED graph rendered");
 		modelGraph.notifyGraphChanged();
 	}
 
@@ -260,7 +277,7 @@ public class LineageExporter implements Command
 				//can this spot be root?
 				if (countBackwardLinks == 0)
 				{
-					logServiceRef.info("Discovered root "+spot.getLabel());
+					ownLogger.info("Discovered root "+spot.getLabel());
 					xLeftBound += discoverEdge(ge,modelGraph, spot, 0,xLeftBound, xIgnoreCoords,0);
 				}
 			}
@@ -271,7 +288,7 @@ public class LineageExporter implements Command
 
 		ge.close();
 
-		logServiceRef.info("generation graph rendered");
+		ownLogger.info("generation graph rendered");
 		modelGraph.notifyGraphChanged();
 	}
 
@@ -350,7 +367,8 @@ public class LineageExporter implements Command
 						spot.outgoingEdges().get(n, lRef).getTarget( fRef );
 						if (fRef.getTimepoint() > time && isEligible(fRef)) daughterList.add(fRef);
 					}
-					sorterOfDaughters.sort(daughterList);
+					if (doDebugMessages) sorterOfDaughters.sort(daughterList,ownLogger);
+					else sorterOfDaughters.sort(daughterList);
 
 					//process the daughters in the given order
 					int childCnt = 0;
@@ -381,7 +399,7 @@ public class LineageExporter implements Command
 					final Iterator<Spot> iter = daughterList.iterator();
 					while (iter.hasNext()) {
 						//edge
-						System.out.print("generation: "+generation+"   ");
+						ownLogger.info("generation: "+generation+"   ");
 						final String toID = Integer.toString(iter.next().getInternalPoolIndex());
 						if (doStraightL) ge.addStraightLine( rootID, toID );
 						else ge.addBendedLine( rootID, toID,
@@ -391,7 +409,7 @@ public class LineageExporter implements Command
 				else
 				{
 					//leaf is just a vertex node (there's no one to connect to)
-					System.out.println("Discovered \"leaf\" "+root.getLabel());
+					ownLogger.info("Discovered \"leaf\" "+root.getLabel());
 				}
 
 				//clean up first before exiting
