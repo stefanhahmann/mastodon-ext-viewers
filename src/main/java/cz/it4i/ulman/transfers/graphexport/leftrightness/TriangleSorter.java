@@ -111,6 +111,7 @@ public class TriangleSorter extends AbstractDescendantsSorter {
 
 			System.out.println("Best axis: "+(positiveDirOfBestAxis ? "positive ":"negative ")+bestAxis);
 			System.out.println("Best angle: "+bestParallelAng*radToDegFactor+" deg");
+			//NB: super.log might not be set here (in this non-verbose regime)
 
 			return positiveDirOfBestAxis? -1 : +1;
 		};

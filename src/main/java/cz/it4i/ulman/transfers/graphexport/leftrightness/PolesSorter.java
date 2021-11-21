@@ -103,7 +103,7 @@ public class PolesSorter extends AbstractDescendantsSorter {
 			final Vector3d d1pos = createVector3d(d1);
 			final Vector3d d2pos = createVector3d(d2);
 
-			System.out.println("Comparing between: "+d1.getLabel()+" and "+d2.getLabel());
+			log.info("Comparing between: "+d1.getLabel()+" and "+d2.getLabel());
 
 			//super useful shortcuts...
 			final Vector3d d1tod2 = new Vector3d(d2pos).sub(d1pos).normalize();
@@ -116,30 +116,30 @@ public class PolesSorter extends AbstractDescendantsSorter {
 			double angle_d2d1c_deg = Math.acos( d1toc.dot(d1tod2) ) *radToDegFactor;
 			//d2 is closer to centre than d1
 			if (angle_d2d1c_deg <= layeringLowerCutoffAngleDeg) {
-				System.out.println("  "+d1.getLabel()+" is outer->right of "+d2.getLabel());
+				log.info("  "+d1.getLabel()+" is outer->right of "+d2.getLabel());
 				return +1;
 			}
 			//d1 is closer to centre than d2
 			else if (angle_d2d1c_deg >= layeringUpperCutoffAngleDeg) {
-				System.out.println("  "+d1.getLabel()+" is inner->left of "+d2.getLabel());
+				log.info("  "+d1.getLabel()+" is inner->left of "+d2.getLabel());
 				return -1;
 			}
 			//NB: tree of a daughter closer to the centre is drawn first (in left)
 
-			System.out.println("  layering angle: "+angle_d2d1c_deg);
+			log.info("  layering angle: "+angle_d2d1c_deg);
 
 			//side-by-side configuration:
 			//
 			//consider a triangle/plane given by d1,d2 and c
 			final Vector3d triangleUp = new Vector3d(d1tod2).cross(d1toc).normalize();
 
-			System.out.println("  tUP: "+printVector(triangleUp,100));
+			log.info("  tUP: "+printVector(triangleUp,100));
 
 			//angle between triangle's normal and up-vector (south-to-north axis)
 			double angle_upsDiff_deg = Math.acos( triangleUp.dot(axisUp) ) *radToDegFactor;
 			if (angle_upsDiff_deg < lrTOupThresholdAngleDeg)
 			{
-				System.out.println("  parallel (diff: "+angle_upsDiff_deg+" deg): "
+				log.info("  parallel (diff: "+angle_upsDiff_deg+" deg): "
 						+d1.getLabel()+" is left of "+d2.getLabel());
 
 				//left-right case, up vectors are nearly parallel
@@ -148,7 +148,7 @@ public class PolesSorter extends AbstractDescendantsSorter {
 			}
 			else if (angle_upsDiff_deg > (180-lrTOupThresholdAngleDeg))
 			{
-				System.out.println("  opposite (diff: "+(180-angle_upsDiff_deg)+" deg): "
+				log.info("  opposite (diff: "+(180-angle_upsDiff_deg)+" deg): "
 						+d1.getLabel()+" is right of "+d2.getLabel());
 
 				//left-right case, up vectors are nearly opposite
@@ -157,19 +157,19 @@ public class PolesSorter extends AbstractDescendantsSorter {
 			}
 
 			//up-down case
-			System.out.println("  perpendicularity (abs ang: "+angle_upsDiff_deg+" deg), would have said: "
+			log.info("  perpendicularity (abs ang: "+angle_upsDiff_deg+" deg), would have said: "
 					+d1.getLabel()+" is "+(angle_upsDiff_deg < 90? "left":"right")+" of "+d2.getLabel());
 			double upDownAngle = d1tod2.dot(axisUp);
 			if (upDownAngle > 0) {
 				//down
 				upDownAngle = Math.acos(upDownAngle) * radToDegFactor;
-				System.out.println("  same orientation (ang: "+(180-upDownAngle)+" deg): "
+				log.info("  same orientation (ang: "+(180-upDownAngle)+" deg): "
 						+d1.getLabel()+" is down/left of "+d2.getLabel());
 				return -1;
 			} else {
 				//up
 				upDownAngle = Math.acos(upDownAngle) * radToDegFactor;
-				System.out.println("  opposite orientation (ang: "+upDownAngle+" deg): "
+				log.info("  opposite orientation (ang: "+upDownAngle+" deg): "
 						+d1.getLabel()+" is up/right of "+d2.getLabel());
 				return +1;
 			}
