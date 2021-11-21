@@ -6,6 +6,7 @@ import cz.it4i.ulman.transfers.graphexport.ui.PerProjectPrefsService;
 import org.mastodon.mamut.MamutAppModel;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.pool.PoolCollectionWrapper;
+import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -17,13 +18,13 @@ import java.util.Optional;
 @Plugin(type = Command.class, name = "Poles method: Parameters")
 public class PolesSorterDlg implements Command {
 	//NB: persist = false because we read/store ourselves
-	@Parameter(label = "Label of centre spot:", persist = false, initializer = "loadParams")
+	@Parameter(label = "Label of centre spot (ns):", persist = false, initializer = "loadParams")
 	public String spotCentreName;
 
-	@Parameter(label = "Label of south-pole spot:", persist = false)
+	@Parameter(label = "Label of south-pole spot (ns):", persist = false)
 	public String spotSouthPoleName;
 
-	@Parameter(label = "Label of north-pole spot:", persist = false)
+	@Parameter(label = "Label of north-pole spot (ns):", persist = false)
 	public String spotNorthPoleName;
 
 	@Parameter(label = "Angle (deg) to switch to up/down test:", min = "0", max = "91")
@@ -40,6 +41,11 @@ public class PolesSorterDlg implements Command {
 
 	@Parameter
 	private LogService logService;
+
+	@Parameter(visibility = ItemVisibility.MESSAGE, persist = false, required = false)
+	final String msg_nsA = "Dialog starts as usually with last entered and thus project-agnostic values,";
+	@Parameter(visibility = ItemVisibility.MESSAGE, persist = false, required = false)
+	final String msg_nsB = "except for (ns - not shared) values which are memorized per project.";
 
 	/** this param comes from the caller and should identify the project behind this */
 	@Parameter(persist = false, required = false)

@@ -6,6 +6,7 @@ import cz.it4i.ulman.transfers.graphexport.ui.PerProjectPrefsService;
 import org.mastodon.mamut.MamutAppModel;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.pool.PoolCollectionWrapper;
+import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -17,13 +18,13 @@ import java.util.Optional;
 @Plugin(type = Command.class, name = "Triangle method: Parameters")
 public class TriangleSorterDlg implements Command {
 	//NB: persist = false because we read/store ourselves
-	@Parameter(label = "Label of centre spot:", persist = false, initializer = "loadParams")
+	@Parameter(label = "Label of centre spot (ns):", persist = false, initializer = "loadParams")
 	public String spotCentreName;
 
-	@Parameter(label = "Label of axis A spot:", persist = false)
+	@Parameter(label = "Label of axis A spot (ns):", persist = false)
 	public String spotAName;
 
-	@Parameter(label = "Label of axis B spot:", persist = false)
+	@Parameter(label = "Label of axis B spot (ns):", persist = false)
 	public String spotBName;
 
 	@Parameter(label = "Angle (deg) for inner layer:", min = "0", max = "90")
@@ -37,6 +38,11 @@ public class TriangleSorterDlg implements Command {
 
 	@Parameter
 	private LogService logService;
+
+	@Parameter(visibility = ItemVisibility.MESSAGE, persist = false, required = false)
+	final String msg_nsA = "Dialog starts as usually with last entered and thus project-agnostic values,";
+	@Parameter(visibility = ItemVisibility.MESSAGE, persist = false, required = false)
+	final String msg_nsB = "except for (ns - not shared) values which are memorized per project.";
 
 	/** this param comes from the caller and should identify the project behind this */
 	@Parameter(persist = false, required = false)

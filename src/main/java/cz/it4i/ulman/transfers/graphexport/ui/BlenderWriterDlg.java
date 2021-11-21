@@ -1,6 +1,7 @@
 package cz.it4i.ulman.transfers.graphexport.ui;
 
 import cz.it4i.ulman.transfers.graphexport.BlenderWriter;
+import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.prefs.PrefService;
@@ -17,7 +18,7 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	float defaultZCoord = 0;
 
 	//NB: persist = false because we read/store ourselves
-	@Parameter(label = "Nickname of this Mastodon instance:", initializer = "loadDataNickname", persist = false)
+	@Parameter(label = "Nickname of this Mastodon instance (ns):", initializer = "loadDataNickname", persist = false)
 	String dataNickname = "Mastodon1";
 
 	/** this param comes from the caller and should identify the project behind this */
@@ -46,6 +47,11 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 
 	@Parameter
 	LogService logService;
+
+	@Parameter(visibility = ItemVisibility.MESSAGE, persist = false, required = false)
+	final String msg_nsA = "Dialog starts as usually with last entered and thus project-agnostic values,";
+	@Parameter(visibility = ItemVisibility.MESSAGE, persist = false, required = false)
+	final String msg_nsB = "except for (ns - not shared) values which are memorized per project.";
 
 	// ------ after all options are set, the workhorse is to be created here ------
 	@Override
