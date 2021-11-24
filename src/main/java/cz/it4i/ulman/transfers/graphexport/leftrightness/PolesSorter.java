@@ -101,8 +101,6 @@ public class PolesSorter extends AbstractDescendantsSorter {
 			final Vector3d d1pos = createVector3d(d1);
 			final Vector3d d2pos = createVector3d(d2);
 
-			log.info("Comparing between: "+d1.getLabel()+" and "+d2.getLabel());
-
 			//super useful shortcuts...
 			final Vector3d d1tod2 = new Vector3d(d2pos).sub(d1pos).normalize();
 			final Vector3d d1toc  = new Vector3d(centre).sub(d1pos).normalize();

@@ -18,18 +18,18 @@ import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
 
 @Plugin(type = Command.class, name = "Poles method: Parameters")
 public class PolesSorterDlg implements Command {
+	@Parameter(label = "Label of north-pole spot (ns):", persist = false)
+	public String spotNorthPoleName;
+
+	@Parameter(label = "Label of south-pole spot (ns):", persist = false)
+	public String spotSouthPoleName;
+
 	//NB: persist = false because we read/store ourselves
 	@Parameter(label = "Label of centre spot (ns):", persist = false, initializer = "loadParams")
 	public String spotCentreName;
 
 	@Parameter(persist = false, required = false, visibility = ItemVisibility.INVISIBLE)
 	public boolean useImplicitCentre = false;
-
-	@Parameter(label = "Label of south-pole spot (ns):", persist = false)
-	public String spotSouthPoleName;
-
-	@Parameter(label = "Label of north-pole spot (ns):", persist = false)
-	public String spotNorthPoleName;
 
 	@Parameter(label = "Angle (deg) to switch to up/down test:", min = "0", max = "91")
 	public int leftRightToUpDownCutOff = 60;
@@ -80,19 +80,19 @@ public class PolesSorterDlg implements Command {
 		storeParams();
 		final PoolCollectionWrapper<Spot> vertices = appModel.getModel().getGraph().vertices();
 
-		Optional<Spot> spot = vertices.stream().filter(s -> s.getLabel().equals(spotSouthPoleName)).findFirst();
-		if (!spot.isPresent()) {
-			logService.error("Couldn't find (south pole) spot with label "+spotSouthPoleName);
-			return;
-		}
-		final Vector3d posS = createVector3d(spot.get());
-
-		spot = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
+		Optional<Spot> spot = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
 		if (!spot.isPresent()) {
 			logService.error("Couldn't find (north pole) spot with label "+spotNorthPoleName);
 			return;
 		}
 		final Vector3d posN = createVector3d(spot.get());
+
+		spot = vertices.stream().filter(s -> s.getLabel().equals(spotSouthPoleName)).findFirst();
+		if (!spot.isPresent()) {
+			logService.error("Couldn't find (south pole) spot with label "+spotSouthPoleName);
+			return;
+		}
+		final Vector3d posS = createVector3d(spot.get());
 
 		Vector3d posCentre;
 		if (useImplicitCentre) {
