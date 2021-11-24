@@ -3,6 +3,7 @@ package cz.it4i.ulman.transfers.graphexport.leftrightness.ui;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.PolesSorter;
 import cz.it4i.ulman.transfers.graphexport.ui.PerProjectPrefsService;
+import org.joml.Vector3d;
 import org.mastodon.mamut.MamutAppModel;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.pool.PoolCollectionWrapper;
@@ -12,7 +13,6 @@ import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
-
 import java.util.Optional;
 import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
 
@@ -21,6 +21,9 @@ public class PolesSorterDlg implements Command {
 	//NB: persist = false because we read/store ourselves
 	@Parameter(label = "Label of centre spot (ns):", persist = false, initializer = "loadParams")
 	public String spotCentreName;
+
+	@Parameter(persist = false, required = false, visibility = ItemVisibility.INVISIBLE)
+	public boolean useImplicitCentre = false;
 
 	@Parameter(label = "Label of south-pole spot (ns):", persist = false)
 	public String spotSouthPoleName;
@@ -55,12 +58,16 @@ public class PolesSorterDlg implements Command {
 	private PrefService ps;
 	//
 	void loadParams() {
-		spotCentreName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotCentreName","--type in spot label--");
+		if (!useImplicitCentre) {
+			spotCentreName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotCentreName","--type in spot label--");
+		}
 		spotSouthPoleName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotSouthPoleName","--type in spot label--");
 		spotNorthPoleName = PerProjectPrefsService.loadStringParam(ps,this.getClass(),projectID,"spotNorthPoleName","--type in spot label--");
 	}
 	void storeParams() {
-		PerProjectPrefsService.storeStringParam(ps,this.getClass(),projectID,"spotCentreName",spotCentreName);
+		if (!useImplicitCentre) {
+			PerProjectPrefsService.storeStringParam(ps,this.getClass(),projectID,"spotCentreName",spotCentreName);
+		}
 		PerProjectPrefsService.storeStringParam(ps,this.getClass(),projectID,"spotSouthPoleName",spotSouthPoleName);
 		PerProjectPrefsService.storeStringParam(ps,this.getClass(),projectID,"spotNorthPoleName",spotNorthPoleName);
 	}
@@ -73,26 +80,31 @@ public class PolesSorterDlg implements Command {
 		storeParams();
 		final PoolCollectionWrapper<Spot> vertices = appModel.getModel().getGraph().vertices();
 
-		final Vector3d posCentre = createVector3d(spotCentre.get());
-		final Optional<Spot> spotCentre = vertices.stream().filter(s -> s.getLabel().equals(spotCentreName)).findFirst();
-		if (!spotCentre.isPresent()) {
-			logService.error("Couldn't find (centre) spot with label "+spotCentreName);
-			return;
-		}
-
-		final Optional<Spot> spotS = vertices.stream().filter(s -> s.getLabel().equals(spotSouthPoleName)).findFirst();
-		if (!spotS.isPresent()) {
+		Optional<Spot> spot = vertices.stream().filter(s -> s.getLabel().equals(spotSouthPoleName)).findFirst();
+		if (!spot.isPresent()) {
 			logService.error("Couldn't find (south pole) spot with label "+spotSouthPoleName);
 			return;
 		}
 		final Vector3d posS = createVector3d(spot.get());
 
-		final Optional<Spot> spotN = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
-		if (!spotN.isPresent()) {
+		spot = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
+		if (!spot.isPresent()) {
 			logService.error("Couldn't find (north pole) spot with label "+spotNorthPoleName);
 			return;
 		}
 		final Vector3d posN = createVector3d(spot.get());
+
+		Vector3d posCentre;
+		if (useImplicitCentre) {
+			posCentre = new Vector3d(posS).add(posN).div(2.0);
+		} else {
+			spot = vertices.stream().filter(s -> s.getLabel().equals(spotCentreName)).findFirst();
+			if (!spot.isPresent()) {
+				logService.error("Couldn't find (centre) spot with label "+spotCentreName);
+				return;
+			}
+			posCentre = createVector3d(spot.get());
+		}
 
 		logService.info("PolesSorter: proceeding with spots "+spotCentreName+", "+spotSouthPoleName
 				+" and "+spotNorthPoleName+" found ("+leftRightToUpDownCutOff+"; "+innerLayerCutOff+","+outerLayerCutOff+")");

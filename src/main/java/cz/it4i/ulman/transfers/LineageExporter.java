@@ -55,7 +55,7 @@ public class LineageExporter implements Command
 	public String exportParams;
 
 	@Parameter(label = "How to sort the lineage:",
-			choices = {"as in TrackScheme","alphanumeric on labels","poles method","triangle method"} )
+			choices = {"as in TrackScheme","alphanumeric on labels","poles method","poles m. with implicit centre","triangle method"} )
 	public String sortMode;
 
 	@Parameter(label = "How to export the lineage:",
@@ -101,11 +101,24 @@ public class LineageExporter implements Command
 			if (sortMode.startsWith("alphanumeric")) {
 				sorterOfDaughters = new AbstractDescendantsSorter();
 			}
-			else if (sortMode.startsWith("poles")) {
+			else if (sortMode.startsWith("poles me")) {
+				//explicit centre
 				final CommandModule m = commandService
 						.run(PolesSorterDlg.class, true,
 								"appModel", appModel,
-								"projectID",projectID)
+								"projectID", projectID,
+								"useImplicitCentre", false)
+						.get();
+				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
+			}
+			else if (sortMode.startsWith("poles m.")) {
+				//implicit centre
+				final CommandModule m = commandService
+						.run(PolesSorterDlg.class, true,
+								"appModel", appModel,
+								"projectID", projectID,
+								"useImplicitCentre", true,
+								"spotCentreName", "implicit_centre") //providedNotBeVisibleInTheGUI
 						.get();
 				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
 			}
