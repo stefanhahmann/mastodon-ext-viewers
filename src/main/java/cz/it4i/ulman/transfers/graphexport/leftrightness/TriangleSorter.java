@@ -2,6 +2,7 @@ package cz.it4i.ulman.transfers.graphexport.leftrightness;
 
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import org.joml.Vector3d;
+import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
 import org.mastodon.mamut.model.Spot;
 
 import java.util.Comparator;
@@ -221,11 +222,6 @@ public class TriangleSorter extends AbstractDescendantsSorter {
 			log.info("= "+d1.getLabel()+(positiveDirOfBestAxis ? " left of ":" right of ")+d2.getLabel());
 			return positiveDirOfBestAxis? -1 : +1;
 		};
-	}
-
-	Vector3d createVector3d(final Spot s)
-	{
-		return new Vector3d( s.getDoublePosition(0), s.getDoublePosition(1), s.getDoublePosition(2) );
 	}
 
 	public enum AxisName { A_XX,B_YY,C_ZZ,NONE };
