@@ -3,9 +3,6 @@ package cz.it4i.ulman.transfers.graphexport.leftrightness;
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import org.joml.Vector3d;
 import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
-import org.mastodon.mamut.model.Spot;
-
-import java.util.Comparator;
 
 public class PolesSorter extends AbstractDescendantsSorter {
 	/** centre position (around which the lineage "revolves"), the centre
@@ -37,14 +34,14 @@ public class PolesSorter extends AbstractDescendantsSorter {
 	 *  if, however, the angle between this plane's normal vector and the up-vector is
 	 *  larger than 'lrTOupThresholdAngleDeg' the sense becomes more down/up than left/right
 	 *  and the decision is made accordingly, the bottom cell is said to be left */
-	public PolesSorter(final Spot spotAtCentre, final Spot spotSouth, final Spot spotNorth)
+	public PolesSorter(final Vector3d posCentre, final Vector3d posSouth, final Vector3d posNorth)
 	{
-		centre = createVector3d(spotAtCentre);
-		axisUp = createVector3d(spotNorth).sub(createVector3d(spotSouth)).normalize();
+		centre = new Vector3d(posCentre); //NB: own copy!
+		axisUp = new Vector3d(posNorth).sub(posSouth).normalize();
 
 		//memorize for this.exportDebugGraphics()
-		this.spotSouth = spotSouth;
-		this.spotNorth = spotNorth;
+		spotSouth = new Vector3d(posSouth); //NB: own copy!
+		spotNorth = new Vector3d(posNorth);
 
 		final double radToDegFactor = 180.0 / Math.PI;
 
@@ -181,8 +178,8 @@ public class PolesSorter extends AbstractDescendantsSorter {
 	public void exportDebugGraphics(final GraphExportable ge)
 	{
 		ge.addNode("Centre","centre at "+printVector(centre), 0, 0,0);
-		ge.addNode("South","south at "+printVector(createVector3d(spotSouth),1), 0, 0,0);
-		ge.addNode("North","north at "+printVector(createVector3d(spotNorth),1), 0, 0,0);
+		ge.addNode("South","south at "+printVector(spotSouth,1), 0, 0,0);
+		ge.addNode("North","north at "+printVector(spotNorth,1), 0, 0,0);
 	}
-	private final Spot spotSouth,spotNorth;
+	private final Vector3d spotSouth,spotNorth;
 }

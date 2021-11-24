@@ -14,6 +14,7 @@ import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
 
 import java.util.Optional;
+import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
 
 @Plugin(type = Command.class, name = "Poles method: Parameters")
 public class PolesSorterDlg implements Command {
@@ -72,6 +73,7 @@ public class PolesSorterDlg implements Command {
 		storeParams();
 		final PoolCollectionWrapper<Spot> vertices = appModel.getModel().getGraph().vertices();
 
+		final Vector3d posCentre = createVector3d(spotCentre.get());
 		final Optional<Spot> spotCentre = vertices.stream().filter(s -> s.getLabel().equals(spotCentreName)).findFirst();
 		if (!spotCentre.isPresent()) {
 			logService.error("Couldn't find (centre) spot with label "+spotCentreName);
@@ -83,17 +85,19 @@ public class PolesSorterDlg implements Command {
 			logService.error("Couldn't find (south pole) spot with label "+spotSouthPoleName);
 			return;
 		}
+		final Vector3d posS = createVector3d(spot.get());
 
 		final Optional<Spot> spotN = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
 		if (!spotN.isPresent()) {
 			logService.error("Couldn't find (north pole) spot with label "+spotNorthPoleName);
 			return;
 		}
+		final Vector3d posN = createVector3d(spot.get());
 
 		logService.info("PolesSorter: proceeding with spots "+spotCentreName+", "+spotSouthPoleName
 				+" and "+spotNorthPoleName+" found ("+leftRightToUpDownCutOff+"; "+innerLayerCutOff+","+outerLayerCutOff+")");
 
-		final PolesSorter ps = new PolesSorter(spotCentre.get(), spotS.get(), spotN.get());
+		final PolesSorter ps = new PolesSorter(posCentre, posS, posN);
 		ps.lrTOupThresholdAngleDeg = leftRightToUpDownCutOff;
 		ps.layeringLowerCutoffAngleDeg = innerLayerCutOff;
 		ps.layeringUpperCutoffAngleDeg = outerLayerCutOff;

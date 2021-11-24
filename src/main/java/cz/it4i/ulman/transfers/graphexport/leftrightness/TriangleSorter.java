@@ -3,9 +3,6 @@ package cz.it4i.ulman.transfers.graphexport.leftrightness;
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
 import org.joml.Vector3d;
 import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
-import org.mastodon.mamut.model.Spot;
-
-import java.util.Comparator;
 
 public class TriangleSorter extends AbstractDescendantsSorter {
 	/** centre position (around which the lineage "revolves") */
@@ -29,11 +26,11 @@ public class TriangleSorter extends AbstractDescendantsSorter {
 	 * is moving *outwards* the centre */
 	public double layeringUpperCutoffAngleDeg = 150; //NB: 150 = 180-30
 
-	public TriangleSorter(final Spot spotAtCentre, final Spot spotA, final Spot spotB)
+	public TriangleSorter(final Vector3d posCentre, final Vector3d posA, final Vector3d posB)
 	{
-		centre = createVector3d(spotAtCentre);
-		axisA = createVector3d(spotA).sub(centre).normalize();
-		axisB = createVector3d(spotB).sub(centre).normalize();
+		centre = new Vector3d(posCentre); //NB: own copy!
+		axisA = new Vector3d(posA).sub(centre).normalize();
+		axisB = new Vector3d(posB).sub(centre).normalize();
 		axisC = new Vector3d(axisA).cross(axisB).normalize();
 
 		final double radToDegFactor = 180.0 / Math.PI;

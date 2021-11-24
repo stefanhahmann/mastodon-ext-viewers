@@ -12,8 +12,8 @@ import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
-
 import java.util.Optional;
+import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
 
 @Plugin(type = Command.class, name = "Triangle method: Parameters")
 public class TriangleSorterDlg implements Command {
@@ -90,7 +90,8 @@ public class TriangleSorterDlg implements Command {
 		logService.info("TriangleSorter: proceeding with spots "+spotCentreName+", "+spotAName
 				+" and "+spotBName+" found ("+innerLayerCutOff+","+outerLayerCutOff+")");
 
-		final TriangleSorter ts = new TriangleSorter(spotCentre.get(), spotA.get(), spotB.get());
+		final TriangleSorter ts = new TriangleSorter(createVector3d(spotCentre.get()),
+				createVector3d(spotA.get()), createVector3d(spotB.get()));
 		ts.layeringLowerCutoffAngleDeg = innerLayerCutOff;
 		ts.layeringUpperCutoffAngleDeg = outerLayerCutOff;
 		sorter = ts;
