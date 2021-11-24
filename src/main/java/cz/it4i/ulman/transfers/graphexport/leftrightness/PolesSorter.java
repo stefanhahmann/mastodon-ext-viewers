@@ -159,13 +159,13 @@ public class PolesSorter extends AbstractDescendantsSorter {
 			if (upDownAngle > 0) {
 				//down
 				upDownAngle = Math.acos(upDownAngle) * radToDegFactor;
-				log.info("  same orientation (ang: "+(180-upDownAngle)+" deg): "
+				log.info("  same orientation (ang: "+upDownAngle+" deg): "
 						+d1.getLabel()+" is down/left of "+d2.getLabel());
 				return -1;
 			} else {
 				//up
 				upDownAngle = Math.acos(upDownAngle) * radToDegFactor;
-				log.info("  opposite orientation (ang: "+upDownAngle+" deg): "
+				log.info("  opposite orientation (ang: "+(180-upDownAngle)+" deg): "
 						+d1.getLabel()+" is up/right of "+d2.getLabel());
 				return +1;
 			}
