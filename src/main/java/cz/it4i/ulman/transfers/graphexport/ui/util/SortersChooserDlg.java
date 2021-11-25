@@ -3,6 +3,7 @@ package cz.it4i.ulman.transfers.graphexport.ui.util;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.PolesSorterDlg;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.SlicesSorterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.TriangleSorterDlg;
 
 import org.mastodon.mamut.MamutAppModel;
@@ -21,6 +22,7 @@ public class SortersChooserDlg {
 	public static final String M_ALPHANUM = "alphanumeric on labels";
 	public static final String M_POLES = "poles method";
 	public static final String M_POLES_IC = "poles m. with implicit centre";
+	public static final String M_SLICES = "slices method";
 	public static final String M_TRIANGLE = "triangle method";
 
 	/** instantiates the appropriate sorter and harvests user params
@@ -61,6 +63,14 @@ public class SortersChooserDlg {
 							"spotCentreName", "implicit_centre") //providedNotBeVisibleInTheGUI
 					.get();
 			if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
+		}
+		else if (chosenMethod.equals(M_SLICES)) {
+			final CommandModule m = commandService
+					.run(SlicesSorterDlg.class, true,
+							"appModel", appModel,
+							"projectID",projectID)
+					.get();
+			if (!m.isCanceled()) sorterOfDaughters = ((SlicesSorterDlg)m.getCommand()).sorter;
 		}
 		else if (chosenMethod.equals(M_TRIANGLE)) {
 			final CommandModule m = commandService
