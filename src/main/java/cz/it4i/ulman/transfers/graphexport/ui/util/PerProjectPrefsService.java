@@ -1,4 +1,4 @@
-package cz.it4i.ulman.transfers.graphexport.ui;
+package cz.it4i.ulman.transfers.graphexport.ui.util;
 
 import org.scijava.prefs.PrefService;
 import java.util.HashMap;
