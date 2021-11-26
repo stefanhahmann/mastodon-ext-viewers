@@ -9,4 +9,6 @@ pom.xml.next
 *.ucls
 .idea/
 *.iml
+.vscode
+.factory*
 .*.sw*
