@@ -5,8 +5,6 @@ import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.DefaultGraph;
 import org.graphstream.ui.view.Viewer;
 
-import java.awt.*;
-
 public class GraphStreamViewer extends AbstractGraphExporter implements GraphExportable
 {
 	// -----------------------------------------------------------------------------

@@ -324,7 +324,7 @@ public class LineageExporter implements Command
 		final Spot fRef = modelGraph.vertices().createRef(); //spot's ancestor buddy (forward)
 		final Link lRef = modelGraph.edgeRef();              //link reference
 		final Spot tRef = modelGraph.vertices().createRef(); //tmp reference on spot
-		final RefList<Spot> daughterList = new RefArrayList(modelGraph.vertices().getRefPool(),3);
+		final RefList<Spot> daughterList = new RefArrayList<>(modelGraph.vertices().getRefPool(),3);
 
 		spot.refTo( root );
 		while (true)
