@@ -27,7 +27,10 @@ import org.scijava.ui.behaviour.util.RunnableAction;
 public class FacadeToAllPluginsInHere extends AbstractContextual implements MamutPlugin
 {
 	private static final String LINEAGE_TIMES = "[exports] lineage lengths";
+	private static final String SORT_DSCNDNTS = "[tomancak] sort descendants";
+
 	private static final String[] LINEAGE_TIMES_KEYS = { "not mapped" };
+	private static final String[] SORT_DSCNDNTS_KEYS = { "not mapped" };
 	//------------------------------------------------------------------------
 
 
@@ -35,6 +38,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	static
 	{
 		menuTexts.put(LINEAGE_TIMES, "Export lineage lengths");
+		menuTexts.put(SORT_DSCNDNTS, "Sort descendants");
 	}
 	@Override
 	public Map< String, String > getMenuTexts() { return menuTexts; }
@@ -44,7 +48,11 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		return Collections.singletonList( menu( "Plugins",
 			menu( "Exports",
-				item(LINEAGE_TIMES) )
+				item(LINEAGE_TIMES)
+			),
+			menu( "Tomancak lab",
+				item(SORT_DSCNDNTS)
+			)
 		) );
 	}
 
@@ -61,18 +69,21 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		public void getCommandDescriptions( final CommandDescriptions descriptions )
 		{
 			descriptions.add(LINEAGE_TIMES, LINEAGE_TIMES_KEYS, "");
+			descriptions.add(SORT_DSCNDNTS, SORT_DSCNDNTS_KEYS, "");
 		}
 	}
 	//------------------------------------------------------------------------
 
 
 	private final AbstractNamedAction actionLengths;
+	private final AbstractNamedAction actionSorting;
 
 	private MamutPluginAppModel pluginAppModel;
 
 	public FacadeToAllPluginsInHere()
 	{
 		actionLengths = new RunnableAction( LINEAGE_TIMES, this::exportLengths );
+		actionSorting = new RunnableAction( SORT_DSCNDNTS, this::sortDescendants );
 		updateEnabledActions();
 	}
 
@@ -87,6 +98,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	public void installGlobalActions( final Actions actions )
 	{
 		actions.namedAction(actionLengths, LINEAGE_TIMES_KEYS );
+		actions.namedAction(actionSorting, SORT_DSCNDNTS_KEYS );
 	}
 
 	/** enables/disables menu items based on the availability of some project */
@@ -94,6 +106,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		final MamutAppModel appModel = ( pluginAppModel == null ) ? null : pluginAppModel.getAppModel();
 		actionLengths.setEnabled( appModel != null );
+		actionSorting.setEnabled( appModel != null );
 	}
 	//------------------------------------------------------------------------
 	//------------------------------------------------------------------------
@@ -103,5 +116,9 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		this.getContext().getService(CommandService.class).run(
 			LineageLengthExporter.class, true,
 			"appModel", pluginAppModel.getAppModel());
+	}
+
+	private void sortDescendants()
+	{
 	}
 }
