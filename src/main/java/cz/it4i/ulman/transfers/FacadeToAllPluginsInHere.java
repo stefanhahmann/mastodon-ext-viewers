@@ -7,7 +7,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
+import io.scif.gui.DefaultGUIService;
 import org.mastodon.app.ui.ViewMenuBuilder;
 import org.mastodon.mamut.plugin.MamutPlugin;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
@@ -17,8 +19,10 @@ import org.mastodon.ui.keymap.CommandDescriptions;
 import org.mastodon.ui.keymap.KeyConfigContexts;
 
 import org.scijava.AbstractContextual;
+import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
+import org.scijava.service.Service;
 import org.scijava.ui.behaviour.util.Actions;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 import org.scijava.ui.behaviour.util.RunnableAction;
@@ -46,7 +50,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		menuTexts.put(SV_OPEN,            "Connect to SimViewer");
 		menuTexts.put(LINEAGE_EXPORTS,    "Lineage Exports");
-		menuTexts.put(LINEAGE_EXPORTS_NQ, "Lineage Exports Quickly");
+		menuTexts.put(LINEAGE_EXPORTS_NQ, "Lineage Exports - Quick Repeat");
 
 		menuTexts.put(LINEAGE_TIMES, "Export lineage lengths");
 	}
@@ -160,7 +164,18 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 	private void exportFullLineageFast()
 	{
-		this.getContext().getService(CommandService.class).run(
+		//let's create a head-less context (which is, however, completely isolated from the current one!)
+		final List<Class<? extends Service>> serviceList = this.getContext().getServiceIndex().stream()
+				.filter(s -> !(s instanceof DefaultGUIService))
+				//NB: turned out that filtering the one above is enough...
+				//.filter(s -> !(s instanceof DisplayService))
+				//.filter(s -> !(s instanceof DefaultDisplayService))
+				//.filter(s -> !(s instanceof DefaultUIService))
+				.map(Service::getClass)
+				.collect(Collectors.toList());
+		final Context headlessCtx = new Context(serviceList);
+
+		headlessCtx.getService(CommandService.class).run(
 			LineageExporter.class, true,
 			"appModel", pluginAppModel.getAppModel(),
 				"projectID", pluginAppModel.getWindowManager().getProjectManager()
