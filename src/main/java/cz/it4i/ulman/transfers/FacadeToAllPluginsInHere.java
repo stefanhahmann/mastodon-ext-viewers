@@ -39,9 +39,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	private static final String[] SV_OPEN_KEYS = { "not mapped" };
 	private static final String[] LINEAGE_EXPORTS_KEYS = { "not mapped" };
 	private static final String[] LINEAGE_EXPORTS_NQ_KEYS = { "not mapped" };
-
-	private static final String LINEAGE_TIMES = "[exports] lineage lengths"; //TODO move to other package
-	private static final String[] LINEAGE_TIMES_KEYS = { "not mapped" };
 	//------------------------------------------------------------------------
 
 
@@ -51,8 +48,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		menuTexts.put(SV_OPEN,            "Connect to SimViewer");
 		menuTexts.put(LINEAGE_EXPORTS,    "Lineage Exports");
 		menuTexts.put(LINEAGE_EXPORTS_NQ, "Lineage Exports - Quick Repeat");
-
-		menuTexts.put(LINEAGE_TIMES, "Export lineage lengths");
 	}
 	@Override
 	public Map< String, String > getMenuTexts() { return menuTexts; }
@@ -65,9 +60,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 				item(SV_OPEN),
 				item(LINEAGE_EXPORTS),
 				item(LINEAGE_EXPORTS_NQ)
-			),
-			menu( "Exports",
-				item(LINEAGE_TIMES) )
+			)
 		) );
 	}
 
@@ -86,7 +79,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 			descriptions.add(SV_OPEN, SV_OPEN_KEYS, "");
 			descriptions.add(LINEAGE_EXPORTS, LINEAGE_EXPORTS_KEYS, "");
 			descriptions.add(LINEAGE_EXPORTS_NQ, LINEAGE_EXPORTS_NQ_KEYS, "");
-			descriptions.add(LINEAGE_TIMES, LINEAGE_TIMES_KEYS, "");
 		}
 	}
 	//------------------------------------------------------------------------
@@ -95,7 +87,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	private final AbstractNamedAction actionOpen;
 	private final AbstractNamedAction actionLineageExport;
 	private final AbstractNamedAction actionLineageExport_NQ;
-	private final AbstractNamedAction actionLengths;
 
 	private MamutPluginAppModel pluginAppModel;
 
@@ -104,8 +95,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		actionOpen             = new RunnableAction( SV_OPEN,            this::simviewerConnection );
 		actionLineageExport    = new RunnableAction( LINEAGE_EXPORTS,    this::exportFullLineage );
 		actionLineageExport_NQ = new RunnableAction( LINEAGE_EXPORTS_NQ, this::exportFullLineageFast );
-
-		actionLengths = new RunnableAction( LINEAGE_TIMES, this::exportLengths );
 		updateEnabledActions();
 	}
 
@@ -122,8 +111,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		actions.namedAction(actionOpen,             SV_OPEN_KEYS );
 		actions.namedAction(actionLineageExport,    LINEAGE_EXPORTS_KEYS );
 		actions.namedAction(actionLineageExport_NQ, LINEAGE_EXPORTS_NQ_KEYS );
-
-		actions.namedAction(actionLengths, LINEAGE_TIMES_KEYS );
 	}
 
 	/** enables/disables menu items based on the availability of some project */
@@ -133,8 +120,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		actionOpen.setEnabled( appModel != null );
 		actionLineageExport.setEnabled( appModel != null );
 		actionLineageExport_NQ.setEnabled( appModel != null );
-
-		actionLengths.setEnabled( appModel != null );
 	}
 	//------------------------------------------------------------------------
 	//------------------------------------------------------------------------
@@ -144,13 +129,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		this.getContext().getService(CommandService.class).run(
 			LineageToSimViewer.class, true,
 			"pluginAppModel", pluginAppModel);
-	}
-
-	private void exportLengths()
-	{
-		this.getContext().getService(CommandService.class).run(
-			LineageLengthExporter.class, true,
-			"appModel", pluginAppModel.getAppModel());
 	}
 
 	private void exportFullLineage()
