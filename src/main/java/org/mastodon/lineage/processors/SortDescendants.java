@@ -7,7 +7,9 @@ import org.mastodon.collection.RefList;
 import org.mastodon.collection.ref.RefArrayList;
 import org.mastodon.lineage.processors.util.SpotsIterator;
 import org.mastodon.mamut.MamutAppModel;
+import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
+import org.mastodon.mamut.model.Link;
 
 import org.scijava.log.Logger;
 import org.scijava.plugin.Plugin;
@@ -58,25 +60,30 @@ public class SortDescendants implements Command
 		try {
 			ownLogger = logServiceRef.subLogger("Lineage exports in "+projectID);
 
-			//first: do we have some extra dialogs to take care of?
+			//first: resolve/harvest the sorter method...
 			sorterOfDaughters = SortersChooserDlg.resolveSorterOfDaughters(sortMode,commandService,appModel,projectID);
 			if (sorterOfDaughters == null) {
 				logServiceRef.info("Dialog canceled or some dialog error, exporting nothing.");
 				return;
 			}
-			//
-			//also prepare the traversing code
+
+			//...and prepare the traversing
 			final SpotsIterator si = new SpotsIterator(appModel,ownLogger);
 
-			final RefList<Spot> daughterList = new RefArrayList<>(appModel.getModel().getGraph().vertices().getRefPool(),3);
+			final ModelGraph graph = appModel.getModel().getGraph();
+			final RefList<Spot> daughterList = new RefArrayList<>(graph.vertices().getRefPool(),3);
+			final Link lRef = graph.edgeRef();
+			final Spot sRef = graph.vertices().createRef();
 
 			//second: define spot handler that sorts its descendants
+			//NB: this is a single thread sweeping so we can afford re-usable refVariables sRef and lRef
 			final Consumer<Spot> handler = spot -> {
-				ownLogger.info("hello from "+spot.getLabel()); //TODO REMOVE
-
 				//get direct descendants
 				daughterList.clear();
 				si.enlistDescendants(spot,daughterList);
+
+				ownLogger.info("hello from "+spot.getLabel()+" which has "+daughterList.size()+" daughters"); //TODO REMOVE
+				if (daughterList.size() < 2) return;
 
 				//get new order
 				if (doDebugMessages)
@@ -84,11 +91,30 @@ public class SortDescendants implements Command
 				else
 					sorterOfDaughters.sort(daughterList);
 
-				//remove and re-insert in the new order
+				//_remove_ and re-insert in the new order,
+				//find the links to point on them, to record them and only afterwards to remove them
+				final RefList<Link> links = new RefArrayList<>(graph.edges().getRefPool(),daughterList.size()+1);
+				for (int n=0; n < spot.incomingEdges().size(); ++n)
+				{
+					spot.incomingEdges().get(n, lRef).getSource( sRef );
+					if (daughterList.contains(sRef)) links.add(lRef);
+				}
+				for (int n=0; n < spot.outgoingEdges().size(); ++n)
+				{
+					spot.outgoingEdges().get(n, lRef).getTarget( sRef );
+					if (daughterList.contains(sRef)) links.add(lRef);
+				}
+				for (Link l : links) graph.remove(l);
+				//
+				//remove and _re-insert_ in the new order
+				for (Spot daughter : daughterList) graph.addEdge(spot,daughter).init();
 			};
 
 			//third: start the lineage travesal
 			si.visitSpots(handler);
+
+			graph.vertices().releaseRef(sRef);
+			graph.releaseRef(lRef);
 
 			ownLogger.info("processing "
 					+ (si.isSelectionEmpty ? "full" : "selected")
