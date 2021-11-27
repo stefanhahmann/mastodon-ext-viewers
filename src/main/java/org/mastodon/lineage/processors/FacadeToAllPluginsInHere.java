@@ -120,5 +120,10 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 	private void sortDescendants()
 	{
+		this.getContext().getService(CommandService.class).run(
+				SortDescendants.class, true,
+				"appModel", pluginAppModel.getAppModel(),
+				"projectID", pluginAppModel.getWindowManager().getProjectManager()
+						.getProject().getProjectRoot().getName());
 	}
 }
