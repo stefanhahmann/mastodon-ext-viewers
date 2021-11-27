@@ -30,7 +30,6 @@ import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.prefs.PrefService;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
@@ -384,9 +383,8 @@ public class LineageExporter implements Command
 
 					//process the daughters in the given order
 					int childCnt = 0;
-					final Iterator<Spot> iter = daughterList.iterator();
-					while (iter.hasNext()) {
-						xRightBound += discoverEdge(ge,modelGraph, iter.next(), generation+1,xRightBound, childrenXcoords,childCnt);
+					for (Spot d : daughterList) {
+						xRightBound += discoverEdge(ge,modelGraph, d, generation+1,xRightBound, childrenXcoords,childCnt);
 						++childCnt;
 					}
 				}
@@ -408,10 +406,9 @@ public class LineageExporter implements Command
 				{
 					int childCnt = 0;
 					//enumerate all ancestors (children) and connect them (to this parent)
-					final Iterator<Spot> iter = daughterList.iterator();
-					while (iter.hasNext()) {
+					for (Spot d : daughterList) {
 						//edge
-						final String toID = Integer.toString(iter.next().getInternalPoolIndex());
+						final String toID = Integer.toString(d.getInternalPoolIndex());
 						ownLogger.info("generation: "+generation+"   "+rootID+" -> "+toID);
 						if (doStraightL) ge.addStraightLine( rootID, toID );
 						else ge.addBendedLine( rootID, toID,
