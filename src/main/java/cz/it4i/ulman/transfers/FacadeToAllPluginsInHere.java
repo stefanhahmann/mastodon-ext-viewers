@@ -38,7 +38,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 	private static final String[] SV_OPEN_KEYS = { "not mapped" };
 	private static final String[] LINEAGE_EXPORTS_KEYS = { "not mapped" };
-	private static final String[] LINEAGE_EXPORTS_NQ_KEYS = { "not mapped" };
+	private static final String[] LINEAGE_EXPORTS_NQ_KEYS = { "ctrl D" };
 	//------------------------------------------------------------------------
 
 
