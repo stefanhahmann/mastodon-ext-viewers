@@ -1,4 +1,4 @@
-package cz.it4i.ulman.transfers;
+package org.mastodon.lineage.processors;
 
 import org.mastodon.collection.*;
 import org.mastodon.ui.util.FileChooser;

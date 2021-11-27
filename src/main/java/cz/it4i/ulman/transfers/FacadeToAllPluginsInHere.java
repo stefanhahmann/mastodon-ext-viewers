@@ -2,94 +2,115 @@ package cz.it4i.ulman.transfers;
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
+
+import io.scif.gui.DefaultGUIService;
 import org.mastodon.app.ui.ViewMenuBuilder;
 import org.mastodon.mamut.plugin.MamutPlugin;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.MamutAppModel;
+import org.mastodon.ui.keymap.CommandDescriptionProvider;
+import org.mastodon.ui.keymap.CommandDescriptions;
+import org.mastodon.ui.keymap.KeyConfigContexts;
 
-import net.imagej.ImageJ;
 import org.scijava.AbstractContextual;
+import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
+import org.scijava.service.Service;
 import org.scijava.ui.behaviour.util.Actions;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 import org.scijava.ui.behaviour.util.RunnableAction;
-
-import javax.swing.*;
-import java.util.*;
-import java.util.List;
-
+import net.imagej.ImageJ;
 
 @Plugin( type = FacadeToAllPluginsInHere.class )
 public class FacadeToAllPluginsInHere extends AbstractContextual implements MamutPlugin
 {
 	//"IDs" of all plug-ins wrapped in this class
-	private static final String SVopen = "LoPaT-OpenSimViewer";
-	private static final String lineageExports = "LoPaT-LineageExports";
-	private static final String lineageTimes = "LoPaT-LineageLengths";
+	private static final String SV_OPEN = "[displays] sciview and SimViewer";
+	private static final String LINEAGE_EXPORTS = "[displays] lineage exports";
+	private static final String LINEAGE_EXPORTS_NQ = "[displays] lineage exports w/o dialog";
+
+	private static final String[] SV_OPEN_KEYS = { "not mapped" };
+	private static final String[] LINEAGE_EXPORTS_KEYS = { "not mapped" };
+	private static final String[] LINEAGE_EXPORTS_NQ_KEYS = { "not mapped" };
 	//------------------------------------------------------------------------
+
+
+	private final static Map< String, String > menuTexts = new HashMap<>();
+	static
+	{
+		menuTexts.put(SV_OPEN,            "Connect to SimViewer");
+		menuTexts.put(LINEAGE_EXPORTS,    "Lineage Exports");
+		menuTexts.put(LINEAGE_EXPORTS_NQ, "Lineage Exports - Quick Repeat");
+	}
+	@Override
+	public Map< String, String > getMenuTexts() { return menuTexts; }
 
 	@Override
 	public List< ViewMenuBuilder.MenuItem > getMenuItems()
 	{
-		//this places the plug-in's menu items into the menu,
-		//the titles of the items are defined right below
-		return Arrays.asList(
-				menu( "Plugins",
-						item( SVopen ),
-						item(lineageExports),
-						item(lineageTimes) ) );
+		return Collections.singletonList( menu( "Plugins",
+			menu( "External Displays",
+				item(SV_OPEN),
+				item(LINEAGE_EXPORTS),
+				item(LINEAGE_EXPORTS_NQ)
+			)
+		) );
 	}
 
-	/** titles of this plug-in's menu items */
-	private final static Map< String, String > menuTexts = new HashMap<>();
-	static
+	/** Command descriptions for all provided commands */
+	@Plugin( type = Descriptions.class )
+	public static class Descriptions extends CommandDescriptionProvider
 	{
-		menuTexts.put(SVopen, "Connect to SimViewer");
-		menuTexts.put(lineageExports, "Exports of the lineage");
-		menuTexts.put(lineageTimes,  "Export lineage lengths");
-	}
+		public Descriptions()
+		{
+			super( KeyConfigContexts.TRACKSCHEME, KeyConfigContexts.BIGDATAVIEWER );
+		}
 
-	@Override
-	public Map< String, String > getMenuTexts()
-	{
-		return menuTexts;
+		@Override
+		public void getCommandDescriptions( final CommandDescriptions descriptions )
+		{
+			descriptions.add(SV_OPEN, SV_OPEN_KEYS, "");
+			descriptions.add(LINEAGE_EXPORTS, LINEAGE_EXPORTS_KEYS, "");
+			descriptions.add(LINEAGE_EXPORTS_NQ, LINEAGE_EXPORTS_NQ_KEYS, "");
+		}
 	}
 	//------------------------------------------------------------------------
 
-	private final AbstractNamedAction actionOpen;
-	private final AbstractNamedAction actionLengths;
-	private final AbstractNamedAction actionLineageExport;
 
-	/** default c'tor: creates Actions available from this plug-in */
+	private final AbstractNamedAction actionOpen;
+	private final AbstractNamedAction actionLineageExport;
+	private final AbstractNamedAction actionLineageExport_NQ;
+
+	private MamutPluginAppModel pluginAppModel;
+
 	public FacadeToAllPluginsInHere()
 	{
-		actionOpen    = new RunnableAction(SVopen, this::simviewerConnection );
-		actionLengths = new RunnableAction(lineageTimes, this::exportLengths );
-		actionLineageExport = new RunnableAction(lineageExports, this::exportFullLineage );
+		actionOpen             = new RunnableAction( SV_OPEN,            this::simviewerConnection );
+		actionLineageExport    = new RunnableAction( LINEAGE_EXPORTS,    this::exportFullLineage );
+		actionLineageExport_NQ = new RunnableAction( LINEAGE_EXPORTS_NQ, this::exportFullLineageFast );
 		updateEnabledActions();
 	}
 
-	/** register the actions to the application (with no shortcut keys) */
-	@Override
-	public void installGlobalActions( final Actions actions )
-	{
-		final String[] noShortCut = { "not mapped" };
-		actions.namedAction( actionOpen, noShortCut );
-		actions.namedAction( actionLengths, noShortCut );
-		actions.namedAction(actionLineageExport, noShortCut );
-	}
-
-	/** reference to the currently available project in Mastodon */
-	private MamutPluginAppModel pluginAppModel;
-
-	/** learn about the current project's params */
 	@Override
 	public void setAppPluginModel( final MamutPluginAppModel model )
 	{
-		//the application reports back to us if some project is available
 		this.pluginAppModel = model;
 		updateEnabledActions();
+	}
+
+	@Override
+	public void installGlobalActions( final Actions actions )
+	{
+		actions.namedAction(actionOpen,             SV_OPEN_KEYS );
+		actions.namedAction(actionLineageExport,    LINEAGE_EXPORTS_KEYS );
+		actions.namedAction(actionLineageExport_NQ, LINEAGE_EXPORTS_NQ_KEYS );
 	}
 
 	/** enables/disables menu items based on the availability of some project */
@@ -97,9 +118,10 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		final MamutAppModel appModel = ( pluginAppModel == null ) ? null : pluginAppModel.getAppModel();
 		actionOpen.setEnabled( appModel != null );
-		actionLengths.setEnabled( appModel != null );
 		actionLineageExport.setEnabled( appModel != null );
+		actionLineageExport_NQ.setEnabled( appModel != null );
 	}
+	//------------------------------------------------------------------------
 	//------------------------------------------------------------------------
 
 	private void simviewerConnection()
@@ -109,16 +131,29 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 			"pluginAppModel", pluginAppModel);
 	}
 
-	private void exportLengths()
-	{
-		this.getContext().getService(CommandService.class).run(
-			LineageLengthExporter.class, true,
-			"appModel", pluginAppModel.getAppModel());
-	}
-
 	private void exportFullLineage()
 	{
 		this.getContext().getService(CommandService.class).run(
+			LineageExporter.class, true,
+			"appModel", pluginAppModel.getAppModel(),
+				"projectID", pluginAppModel.getWindowManager().getProjectManager()
+						.getProject().getProjectRoot().getName());
+	}
+
+	private void exportFullLineageFast()
+	{
+		//let's create a head-less context (which is, however, completely isolated from the current one!)
+		final List<Class<? extends Service>> serviceList = this.getContext().getServiceIndex().stream()
+				.filter(s -> !(s instanceof DefaultGUIService))
+				//NB: turned out that filtering the one above is enough...
+				//.filter(s -> !(s instanceof DisplayService))
+				//.filter(s -> !(s instanceof DefaultDisplayService))
+				//.filter(s -> !(s instanceof DefaultUIService))
+				.map(Service::getClass)
+				.collect(Collectors.toList());
+		final Context headlessCtx = new Context(serviceList);
+
+		headlessCtx.getService(CommandService.class).run(
 			LineageExporter.class, true,
 			"appModel", pluginAppModel.getAppModel(),
 				"projectID", pluginAppModel.getWindowManager().getProjectManager()

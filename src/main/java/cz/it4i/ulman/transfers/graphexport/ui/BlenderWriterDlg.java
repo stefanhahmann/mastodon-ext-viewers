@@ -1,6 +1,7 @@
 package cz.it4i.ulman.transfers.graphexport.ui;
 
 import cz.it4i.ulman.transfers.graphexport.BlenderWriter;
+import cz.it4i.ulman.transfers.graphexport.ui.util.PerProjectPrefsService;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;

@@ -2,14 +2,13 @@ package cz.it4i.ulman.transfers;
 
 import cz.it4i.ulman.transfers.graphexport.BlenderWriter;
 import cz.it4i.ulman.transfers.graphexport.GraphExportable;
+import cz.it4i.ulman.transfers.graphexport.ui.util.SortersChooserDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.GraphExportableFetcher;
 import cz.it4i.ulman.transfers.graphexport.ui.yEdGraphMLWriterDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.GraphStreamViewerDlg;
 import cz.it4i.ulman.transfers.graphexport.ui.BlenderWriterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSorter;
-import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.PolesSorterDlg;
-import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.TriangleSorterDlg;
 
 import org.mastodon.collection.RefList;
 import org.mastodon.collection.ref.RefArrayList;
@@ -30,7 +29,6 @@ import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.prefs.PrefService;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
@@ -55,7 +53,9 @@ public class LineageExporter implements Command
 	public String exportParams;
 
 	@Parameter(label = "How to sort the lineage:",
-			choices = {"as in TrackScheme","alphanumeric on labels","poles method","poles m. with implicit centre","triangle method"} )
+			choices = { SortersChooserDlg.M_TRACKSCHEME, SortersChooserDlg.M_ALPHANUM,
+			            SortersChooserDlg.M_POLES, SortersChooserDlg.M_POLES_IC,
+			            SortersChooserDlg.M_TRIANGLE })
 	public String sortMode;
 
 	@Parameter(label = "How to export the lineage:",
@@ -97,41 +97,7 @@ public class LineageExporter implements Command
 			ownLogger = logServiceRef.subLogger("Lineage exports in "+projectID);
 
 			//first: do we have some extra dialogs to take care of?
-			sorterOfDaughters = null; //intentionally, indicates a problem...
-			if (sortMode.startsWith("alphanumeric")) {
-				sorterOfDaughters = new AbstractDescendantsSorter();
-			}
-			else if (sortMode.startsWith("poles me")) {
-				//explicit centre
-				final CommandModule m = commandService
-						.run(PolesSorterDlg.class, true,
-								"appModel", appModel,
-								"projectID", projectID,
-								"useImplicitCentre", false)
-						.get();
-				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
-			}
-			else if (sortMode.startsWith("poles m.")) {
-				//implicit centre
-				final CommandModule m = commandService
-						.run(PolesSorterDlg.class, true,
-								"appModel", appModel,
-								"projectID", projectID,
-								"useImplicitCentre", true,
-								"spotCentreName", "implicit_centre") //providedNotBeVisibleInTheGUI
-						.get();
-				if (!m.isCanceled()) sorterOfDaughters = ((PolesSorterDlg)m.getCommand()).sorter;
-			}
-			else if (sortMode.startsWith("triangle")) {
-				final CommandModule m = commandService
-						.run(TriangleSorterDlg.class, true,
-								"appModel", appModel,
-								"projectID",projectID)
-						.get();
-				if (!m.isCanceled()) sorterOfDaughters = ((TriangleSorterDlg)m.getCommand()).sorter;
-			}
-			else sorterOfDaughters = listOfDaughters -> {}; //"as in TrackScheme" -> no sorting on our side
-
+			sorterOfDaughters = SortersChooserDlg.resolveSorterOfDaughters(sortMode,commandService,appModel,projectID);
 			if (sorterOfDaughters == null) {
 				logServiceRef.info("Dialog canceled or some dialog error, exporting nothing.");
 				return;
@@ -324,7 +290,7 @@ public class LineageExporter implements Command
 		final Spot fRef = modelGraph.vertices().createRef(); //spot's ancestor buddy (forward)
 		final Link lRef = modelGraph.edgeRef();              //link reference
 		final Spot tRef = modelGraph.vertices().createRef(); //tmp reference on spot
-		final RefList<Spot> daughterList = new RefArrayList(modelGraph.vertices().getRefPool(),3);
+		final RefList<Spot> daughterList = new RefArrayList<>(modelGraph.vertices().getRefPool(),3);
 
 		spot.refTo( root );
 		while (true)
@@ -384,9 +350,8 @@ public class LineageExporter implements Command
 
 					//process the daughters in the given order
 					int childCnt = 0;
-					final Iterator<Spot> iter = daughterList.iterator();
-					while (iter.hasNext()) {
-						xRightBound += discoverEdge(ge,modelGraph, iter.next(), generation+1,xRightBound, childrenXcoords,childCnt);
+					for (Spot d : daughterList) {
+						xRightBound += discoverEdge(ge,modelGraph, d, generation+1,xRightBound, childrenXcoords,childCnt);
 						++childCnt;
 					}
 				}
@@ -408,10 +373,9 @@ public class LineageExporter implements Command
 				{
 					int childCnt = 0;
 					//enumerate all ancestors (children) and connect them (to this parent)
-					final Iterator<Spot> iter = daughterList.iterator();
-					while (iter.hasNext()) {
+					for (Spot d : daughterList) {
 						//edge
-						final String toID = Integer.toString(iter.next().getInternalPoolIndex());
+						final String toID = Integer.toString(d.getInternalPoolIndex());
 						ownLogger.info("generation: "+generation+"   "+rootID+" -> "+toID);
 						if (doStraightL) ge.addStraightLine( rootID, toID );
 						else ge.addBendedLine( rootID, toID,

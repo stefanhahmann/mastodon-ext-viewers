@@ -2,7 +2,7 @@ package cz.it4i.ulman.transfers.graphexport.leftrightness.ui;
 
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.PolesSorter;
-import cz.it4i.ulman.transfers.graphexport.ui.PerProjectPrefsService;
+import cz.it4i.ulman.transfers.graphexport.ui.util.PerProjectPrefsService;
 import org.joml.Vector3d;
 import org.mastodon.mamut.MamutAppModel;
 import org.mastodon.mamut.model.Spot;
