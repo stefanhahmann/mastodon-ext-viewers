@@ -36,7 +36,7 @@ public class SortDescendants implements Command
 	private String projectID = "default";
 
 	@Parameter(label = "How to sort the lineage:",
-			choices = { SortersChooserDlg.M_TRACKSCHEME, SortersChooserDlg.M_ALPHANUM,
+			choices = { SortersChooserDlg.M_ALPHANUM,
 			            SortersChooserDlg.M_POLES, SortersChooserDlg.M_POLES_IC,
 			            SortersChooserDlg.M_TRIANGLE })
 	public String sortMode;
@@ -82,7 +82,7 @@ public class SortDescendants implements Command
 				daughterList.clear();
 				si.enlistDescendants(spot,daughterList);
 
-				ownLogger.info("hello from "+spot.getLabel()+" which has "+daughterList.size()+" daughters"); //TODO REMOVE
+				//ownLogger.info("hello from "+spot.getLabel()+" which has "+daughterList.size()+" daughters"); //TODO REMOVE
 				if (daughterList.size() < 2) return;
 
 				//get new order
