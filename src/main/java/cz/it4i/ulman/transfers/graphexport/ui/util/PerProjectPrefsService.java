@@ -14,7 +14,17 @@ public class PerProjectPrefsService
 	 */
 	public static String createKey(final String paramName, final String projectID)
 	{
-		return paramName+"_"+projectID;
+		//a couple of "clearing" things:
+		//  strip .mastodon suffix,
+		//  take no more than first 20 chars from paramName,
+		//  take no more than last 59 chars from projectID
+		//  (so that the compound name is not more than 80 chars in total)
+		int dotPos = projectID.endsWith(".mastodon") ?
+			projectID.lastIndexOf('.') : projectID.length();
+
+		return paramName.substring(0, Math.min( 20,paramName.length() ))
+		     + "_"
+		     + projectID.substring(Math.max( 0,dotPos-59 ), dotPos);
 	}
 
 
