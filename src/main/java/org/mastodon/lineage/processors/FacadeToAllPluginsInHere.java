@@ -28,9 +28,11 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 {
 	private static final String LINEAGE_TIMES = "[exports] lineage lengths";
 	private static final String SORT_DSCNDNTS = "[tomancak] sort descendants";
+	private static final String LINEAGE_FILTER = "[tomancak] remove solists spots";
 
 	private static final String[] LINEAGE_TIMES_KEYS = { "not mapped" };
 	private static final String[] SORT_DSCNDNTS_KEYS = { "not mapped" };
+	private static final String[] LINEAGE_FILTER_KEYS = { "not mapped" };
 	//------------------------------------------------------------------------
 
 
@@ -39,6 +41,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		menuTexts.put(LINEAGE_TIMES, "Export lineage lengths");
 		menuTexts.put(SORT_DSCNDNTS, "Sort descendants");
+		menuTexts.put(LINEAGE_FILTER, "Remove Spots Solists");
 	}
 	@Override
 	public Map< String, String > getMenuTexts() { return menuTexts; }
@@ -51,7 +54,8 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 				item(LINEAGE_TIMES)
 			),
 			menu( "Tomancak lab",
-				item(SORT_DSCNDNTS)
+				item(SORT_DSCNDNTS),
+				item(LINEAGE_FILTER)
 			)
 		) );
 	}
@@ -70,6 +74,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		{
 			descriptions.add(LINEAGE_TIMES, LINEAGE_TIMES_KEYS, "");
 			descriptions.add(SORT_DSCNDNTS, SORT_DSCNDNTS_KEYS, "");
+			descriptions.add(LINEAGE_FILTER, LINEAGE_FILTER_KEYS, "");
 		}
 	}
 	//------------------------------------------------------------------------
@@ -77,6 +82,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 	private final AbstractNamedAction actionLengths;
 	private final AbstractNamedAction actionSorting;
+	private final AbstractNamedAction actionSolists;
 
 	private MamutPluginAppModel pluginAppModel;
 
@@ -84,6 +90,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		actionLengths = new RunnableAction( LINEAGE_TIMES, this::exportLengths );
 		actionSorting = new RunnableAction( SORT_DSCNDNTS, this::sortDescendants );
+		actionSolists = new RunnableAction( LINEAGE_FILTER, this::filterOutSolists );
 		updateEnabledActions();
 	}
 
@@ -99,6 +106,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		actions.namedAction(actionLengths, LINEAGE_TIMES_KEYS );
 		actions.namedAction(actionSorting, SORT_DSCNDNTS_KEYS );
+		actions.namedAction(actionSolists, LINEAGE_FILTER_KEYS );
 	}
 
 	/** enables/disables menu items based on the availability of some project */
@@ -107,6 +115,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		final MamutAppModel appModel = ( pluginAppModel == null ) ? null : pluginAppModel.getAppModel();
 		actionLengths.setEnabled( appModel != null );
 		actionSorting.setEnabled( appModel != null );
+		actionSolists.setEnabled( appModel != null );
 	}
 	//------------------------------------------------------------------------
 	//------------------------------------------------------------------------
@@ -125,5 +134,12 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 				"appModel", pluginAppModel.getAppModel(),
 				"projectID", pluginAppModel.getWindowManager().getProjectManager()
 						.getProject().getProjectRoot().getName());
+	}
+
+	private void filterOutSolists()
+	{
+		this.getContext().getService(CommandService.class).run(
+				FilterOutSolists.class, true,
+				"appModel", pluginAppModel.getAppModel());
 	}
 }
