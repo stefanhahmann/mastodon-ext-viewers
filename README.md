@@ -15,7 +15,7 @@ and into various sinks, e.g.
 - in a separate applications such as [Blender](https://www.blender.org/) or [sciview](https://imagej.net/plugins/sciview).
 
 It was developed and is maintained by [Vladimír Ulman](http://www.fi.muni.cz/~xulman/).
-The BioMatch Blender addon ([see below](#Blender)) was developed together
+The BioMatch Blender addon ([see below](#blender)) was developed together
 with Petr Strakoš from [IT4Innovation](https://www.it4i.cz/en).
 
 
@@ -38,7 +38,7 @@ Notes
 Once installed, one can find the tools in the Mastodon, in the _Plugins_ menu.
 Contact (ulman při fi.muni.cz) for help on how to use it.
 
-## Blender
+### Blender
 This particular sink, besides its practical value, serves as an example
 of foreign, network-connected application that can receive the lineage as
 a set of drawing commands to have the lineage displayed. The connection is
@@ -58,15 +58,17 @@ Here's how to add grpc into your installed Blender (for 2.9x version series):
 1. Open a terminal (konsole)
 1. `cd` into where you have dropped the Blender.app
 1. Further `cd` deep into it:
-2. `cd Blender.app/Contents/Resources/2.93/python/bin`
-1. Run the following commands (one full line, one command):
-2. `./python3.9 -m ensurepip`
-2. `./python3.9 -m pip install --upgrade pip`
-2. `./pip install grpcio-tools`
+	1. on mac: `cd Blender.app/Contents/Resources/2.93/python/bin`
+	1. on linux: `cd blender-2.93.1-linux-x64/2.93/python/bin`
+	1. on windows: ...similarily...
+1. Run the following commands (one full line, one command, the same on all OSes):
+	1. `./python3.9 -m ensurepip`
+	1. `./python3.9 -m pip install --upgrade pip`
+	1. `./pip install grpcio-tools`
 1. Open Blender again
 
 
-## sciview
+### sciview
 This particular sink is also implemented via the network connection.
 The client code is implemented here, in this repo.
 The server side is implemented in [the allied other repository ;-)](https://github.com/mastodon-sc/mastodon-sciview).
