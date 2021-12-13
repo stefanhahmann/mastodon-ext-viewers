@@ -82,7 +82,7 @@ public class LineageExporter implements Command
 	@Parameter(label = "How to sort the lineage:",
 			choices = { SortersChooserDlg.M_TRACKSCHEME, SortersChooserDlg.M_ALPHANUM,
 			            SortersChooserDlg.M_POLES, SortersChooserDlg.M_POLES_IC,
-			            SortersChooserDlg.M_SLICES, SortersChooserDlg.M_TRIANGLE })
+			            SortersChooserDlg.M_SLICES, SortersChooserDlg.M_TRIANGLE, SortersChooserDlg.M_DELUXE })
 	public String sortMode;
 
 	@Parameter(label = "How to export the lineage:",

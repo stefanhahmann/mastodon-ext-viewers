@@ -29,6 +29,7 @@ package cz.it4i.ulman.transfers.graphexport.ui.util;
 
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSorter;
+import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.DeluxeSorterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.PolesSorterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.SlicesSorterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.TriangleSorterDlg;
@@ -51,6 +52,7 @@ public class SortersChooserDlg {
 	public static final String M_POLES_IC = "poles m. with implicit centre";
 	public static final String M_SLICES = "slices method";
 	public static final String M_TRIANGLE = "triangle method";
+	public static final String M_DELUXE = "deluxe method";
 
 	/** instantiates the appropriate sorter and harvests user params
 	 *  that the particular sorter needs for its work; because of the
@@ -106,6 +108,14 @@ public class SortersChooserDlg {
 							"projectID",projectID)
 					.get();
 			if (!m.isCanceled()) sorterOfDaughters = ((TriangleSorterDlg)m.getCommand()).sorter;
+		}
+		else if (chosenMethod.equals(M_DELUXE)) {
+			final CommandModule m = commandService
+					.run(DeluxeSorterDlg.class, true,
+							"appModel", appModel,
+							"projectID",projectID)
+					.get();
+			if (!m.isCanceled()) sorterOfDaughters = ((DeluxeSorterDlg)m.getCommand()).sorter;
 		}
 
 		return sorterOfDaughters;
