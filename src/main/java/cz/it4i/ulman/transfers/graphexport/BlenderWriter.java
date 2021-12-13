@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  *
- * Copyright (c) 2019, Vladimír Ulman
+ * Copyright (c) 2021, Vladimír Ulman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
