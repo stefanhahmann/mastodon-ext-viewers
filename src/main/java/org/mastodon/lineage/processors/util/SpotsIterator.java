@@ -81,16 +81,7 @@ public class SpotsIterator
 	public
 	void visitSelectedSpots(final Consumer<Spot> spotHandler)
 	{
-		isSelectionEmpty = selectionModel.isEmpty();
-
-		for (Spot spot : selectionModel.getSelectedVertices())
-		{
-			if (countAncestors(spot) == 0)
-			{
-				ownLogger.info("Discovered root "+spot.getLabel());
-				visitDownstreamSpots(spot,spotHandler);
-			}
-		}
+		visitRootsFromSelection( rootSpot -> visitDownstreamSpots(rootSpot,spotHandler) );
 	}
 
 
@@ -98,6 +89,29 @@ public class SpotsIterator
 	 *  calls visitDownstreamSpots() on them */
 	public
 	void visitAllSpots(final Consumer<Spot> spotHandler)
+	{
+		visitRootsFromEntireGraph( rootSpot -> visitDownstreamSpots(rootSpot,spotHandler) );
+	}
+
+
+	// ========= internal (but accessible) API =========
+	public
+	void visitRootsFromSelection(final Consumer<Spot> rootSpotHandler)
+	{
+		isSelectionEmpty = selectionModel.isEmpty();
+		for (Spot spot : selectionModel.getSelectedVertices())
+		{
+			if (countAncestors(spot) == 0)
+			{
+				ownLogger.info("Discovered root "+spot.getLabel());
+				rootSpotHandler.accept(spot);
+			}
+		}
+	}
+
+
+	public
+	void visitRootsFromEntireGraph(final Consumer<Spot> rootSpotHandler)
 	{
 		isSelectionEmpty = true; //pretend there is nothing selected
 
@@ -112,13 +126,12 @@ public class SpotsIterator
 			if (countAncestors(spot) == 0)
 			{
 				ownLogger.info("Discovered root "+spot.getLabel());
-				visitDownstreamSpots(spot,spotHandler);
+				rootSpotHandler.accept(spot);
 			}
 		}
 	}
 
 
-	// ========= internal (but accessible) API =========
 	/** traverses future (higher time point) direct descendants
 	 *  of the given root spot */
 	public
