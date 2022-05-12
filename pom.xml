@@ -62,7 +62,7 @@
 
 	<!-- NEEDS TO BE COMPLETED -->
 	<scm>
-		<connection>scm:git:git://github.com/TBA</connection>
+		<connection>scm:git:https://github.com/TBA</connection>
 		<developerConnection>scm:git:localhost:9999</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/xulman/TomancakLab</url>
