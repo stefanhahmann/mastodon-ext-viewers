@@ -84,7 +84,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 				item(LINEAGE_TIMES),
 				item(LINEAGE_COUNTS)
 			),
-			menu( "Tomancak lab",
+			menu( "Trees Management",
 				item(SORT_DSCNDNTS),
 				item(LINEAGE_FILTER)
 			)
