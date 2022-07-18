@@ -61,7 +61,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	private final static Map< String, String > menuTexts = new HashMap<>();
 	static
 	{
-		menuTexts.put(SORT_DSCNDNTS, "Sort descendants");
+		menuTexts.put(SORT_DSCNDNTS, "Sort Descendants");
 	}
 	@Override
 	public Map< String, String > getMenuTexts() { return menuTexts; }
