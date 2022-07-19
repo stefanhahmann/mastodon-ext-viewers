@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>30.0.0</version>
+		<version>31.1.0</version>
 	</parent>
 
 	<groupId>cz.it4i.ulman.transfers</groupId>
@@ -147,6 +147,13 @@
 			<groupId>org.mastodon</groupId>
 			<artifactId>mastodon</artifactId>
 			<version>${mastodon.version}</version>
+		</dependency>
+
+		<!-- to reach SpotsIterator class -->
+		<dependency>
+			<groupId>org.mastodon</groupId>
+			<artifactId>mastodon-tomancak</artifactId>
+			<version>0.2.2-SNAPSHOT</version>
 		</dependency>
 
 		<!-- viewers of (also) lineage trees -->
