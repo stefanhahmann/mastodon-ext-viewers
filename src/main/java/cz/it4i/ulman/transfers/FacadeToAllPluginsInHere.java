@@ -83,7 +83,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	public List< ViewMenuBuilder.MenuItem > getMenuItems()
 	{
 		return Collections.singletonList( menu( "Plugins",
-			menu( "External Displays",
+			menu( "Auxiliary Displays",
 				item(SV_OPEN),
 				item(LINEAGE_EXPORTS),
 				item(LINEAGE_EXPORTS_NQ)

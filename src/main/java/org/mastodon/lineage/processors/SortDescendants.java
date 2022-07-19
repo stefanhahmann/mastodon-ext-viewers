@@ -32,7 +32,7 @@ import cz.it4i.ulman.transfers.graphexport.ui.util.SortersChooserDlg;
 
 import org.mastodon.collection.RefList;
 import org.mastodon.collection.ref.RefArrayList;
-import org.mastodon.lineage.processors.util.SpotsIterator;
+import org.mastodon.mamut.tomancak.util.SpotsIterator;
 import org.mastodon.mamut.MamutAppModel;
 import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
