@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>31.1.0</version>
+		<version>33.2.0</version>
 	</parent>
 
 	<groupId>cz.it4i.ulman.transfers</groupId>
@@ -127,8 +127,7 @@
 		<license.projectName>Online Mastodon Exports</license.projectName>
 		<package-name>cz.it4i.ulman.transfers</package-name>
 
-		<mastodon.version>1.0.0-beta-19</mastodon.version>
-		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
+		<mastodon.version>1.0.0-beta-26-SNAPSHOT</mastodon.version>
 	</properties>
 
 	<repositories>
@@ -153,14 +152,25 @@
 		<dependency>
 			<groupId>org.mastodon</groupId>
 			<artifactId>mastodon-tomancak</artifactId>
-			<version>0.2.2-SNAPSHOT</version>
+			<version>0.3.1-SNAPSHOT</version>
 		</dependency>
 
 		<!-- viewers of (also) lineage trees -->
+		<!-- gRPC -->
 		<dependency>
-			<groupId>cz.it4i.ulman.transfers.graphics</groupId>
-			<artifactId>graphics-net-transfers</artifactId>
-			<version>0.9.2</version>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-netty-shaded</artifactId>
+			<version>1.47.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-protobuf</artifactId>
+			<version>1.47.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-stub</artifactId>
+			<version>1.47.0</version>
 		</dependency>
 
 		<dependency>
@@ -169,17 +179,5 @@
 			<version>1.3</version>
 		</dependency>
 
-		<!-- for simviewer -->
-		<dependency>
-			<groupId>org.zeromq</groupId>
-			<artifactId>jeromq</artifactId>
-			<version>0.5.1</version>
-		</dependency>
-
-		<!-- likely to be removed?? -->
-		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>imagej</artifactId>
-		</dependency>
 	</dependencies>
 </project>

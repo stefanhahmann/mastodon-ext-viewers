@@ -53,7 +53,6 @@ import org.scijava.service.Service;
 import org.scijava.ui.behaviour.util.Actions;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 import org.scijava.ui.behaviour.util.RunnableAction;
-import net.imagej.ImageJ;
 
 @Plugin( type = FacadeToAllPluginsInHere.class )
 public class FacadeToAllPluginsInHere extends AbstractContextual implements MamutPlugin
@@ -185,13 +184,5 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 			"appModel", pluginAppModel.getAppModel(),
 				"projectID", pluginAppModel.getWindowManager().getProjectManager()
 						.getProject().getProjectRoot().getName());
-	}
-	//------------------------------------------------------------------------
-
-	public static void main( final String[] args ) throws Exception
-	{
-		//only start up our own Fiji/Imagej2
-		final ImageJ ij = new net.imagej.ImageJ();
-		ij.ui().showUI();
 	}
 }
