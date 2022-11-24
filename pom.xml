@@ -181,6 +181,11 @@
 			<artifactId>mastodon-tomancak</artifactId>
 			<version>0.3.1-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>org.joml</groupId>
+			<artifactId>joml</artifactId>
+			<version>${org.joml.joml.version}</version>
+		</dependency>
 
 		<!-- viewers of (also) lineage trees -->
 		<!-- gRPC -->
@@ -200,11 +205,11 @@
 			<version>1.47.0</version>
 		</dependency>
 
+		<!-- the rest of the world -->
 		<dependency>
 			<groupId>org.graphstream</groupId>
 			<artifactId>gs-core</artifactId>
 			<version>1.3</version>
 		</dependency>
-
 	</dependencies>
 </project>

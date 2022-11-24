@@ -27,9 +27,9 @@
  */
 package cz.it4i.ulman.transfers.graphexport;
 
-import cz.it4i.ulman.transfers.graphics.protocol.PointsAndLinesGrpc;
-import cz.it4i.ulman.transfers.graphics.protocol.PointsAndLinesOuterClass;
+import cz.it4i.ulman.transfers.graphics.protocol.BucketsWithGraphics;
 import cz.it4i.ulman.transfers.graphics.EmptyIgnoringStreamObservers;
+import cz.it4i.ulman.transfers.graphics.protocol.ClientToServerGrpc;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -47,41 +47,50 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	public float lineRadius = 3.f;
 	public float z_coord = 0.f;
 
-	private StreamObserver<PointsAndLinesOuterClass.PointAsBall> nodes;
-	private StreamObserver<PointsAndLinesOuterClass.LineWithIDs> lines;
-	private StreamObserver<PointsAndLinesOuterClass.LineWithPositions> linePs;
-	private PointsAndLinesGrpc.PointsAndLinesStub comm;
+	private ClientToServerGrpc.ClientToServerStub commContinuous;
+	private ClientToServerGrpc.ClientToServerBlockingStub commBlocking;
 	private ManagedChannel channel;
-	private final String url;
+	private String url;
 	final LogService logger;
 
-	public BlenderWriter(final String hostAndPort)
+	public BlenderWriter(final String hostAndPort,
+	                     final String clientName)
 	{
-		this(hostAndPort, new StderrLogService());
+		this(hostAndPort, clientName, new StderrLogService());
 	}
 
-	public BlenderWriter(final String hostAndPort, LogService logService)
+	public BlenderWriter(final String hostAndPort,
+	                     final String clientName,
+	                     LogService logService)
 	{
+		this(ManagedChannelBuilder.forTarget(hostAndPort).usePlaintext().build(), clientName, logService);
 		url = hostAndPort;
+	}
+
+	public BlenderWriter(final ManagedChannel someExistingChannel,
+	                     final String clientName,
+	                     LogService logService)
+	{
 		logger = logService;
 
 		try {
-			channel = ManagedChannelBuilder.forTarget(url).usePlaintext().build();
-			comm = PointsAndLinesGrpc.newStub(channel);
-
-			nodes = comm.sendBall(getNoResponseExpectedObj());
-			lines = comm.sendLineWithIDs(getNoResponseExpectedObj());
-			linePs = comm.sendLineWithPos(getNoResponseExpectedObj());
+			channel = someExistingChannel;
+			commContinuous = ClientToServerGrpc.newStub(channel);
+			commBlocking = ClientToServerGrpc.newBlockingStub(channel);
 			isValid = true;
+
+			setClientName(clientName);
+			introduceClient();
+			mainDataStream = commContinuous.addGraphics(new EmptyIgnoringStreamObservers());
 		} catch (StatusRuntimeException e) {
-			logger.warn("RPC client-side failed while accessing "+url
-				+", details follow:\n"+e.getMessage());
+			logger.warn("RPC client-side failed while accessing " + url
+					+ ", details follow:\n" + e.getMessage());
 		}
 	}
 
-	int nodesCnt;
-	int linesCnt;
-	int linePsCnt;
+	//private String currentSourceName = "Mastodon lineage trees";
+	private BucketsWithGraphics.ClientIdentification currentCid;
+	public String currentCollectionName = "lineage trees";
 
 	boolean isValid = false;
 	boolean isClosed = false;
@@ -91,19 +100,21 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		// ManagedChannels use resources like threads and TCP connections. To prevent leaking these
 		// resources the channel should be shut down when it will no longer be used. If it may be used
 		// again leave it running.
+		logger.info("connection to Blender is closing...");
 		try {
-			logger.info("nodes: "+nodesCnt+" , lines: "+linesCnt+", linePs: "+linePsCnt);
-			if (linesCnt > 0) lines.onCompleted();
-			if (linePsCnt > 0) linePs.onCompleted();
-			if (nodesCnt > 0) nodes.onCompleted();
+			if (nodeBuilder != null && mainDataStream != null) {
+				mainDataStream.onNext( nodeBuilder.build() );
+				mainDataStream.onCompleted();
+				logger.info("...sent last batch");
+			}
 
 			//first, make sure the channel describe itself as "READY"
 			//logger.info("state: "+channel.getState(false).name());
 			int wantStillWaitTime = 20;
+			final int checkingPeriod = 2;
 			while (channel.getState(false) != ConnectivityState.READY && wantStillWaitTime > 0) {
-				int waitingTime = 2;
-				wantStillWaitTime -= waitingTime;
-				Thread.sleep(waitingTime * 1000); //seconds -> milis
+				wantStillWaitTime -= checkingPeriod;
+				Thread.sleep(checkingPeriod * 1000); //seconds -> milis
 			}
 			//but even when it claims "READY", it still needs some grace time to finish any commencing transfers
 			Thread.sleep( 5000);
@@ -112,7 +123,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		catch (InterruptedException e) {
 			/* don't care that waiting was interrupted */
 		} catch (StatusRuntimeException e) {
-			logger.warn("RPC client-side failed for "+url
+			logger.error("Mastodon network sender failed for "+url
 				+", details follow:\n"+e.getMessage());
 		}
 		isClosed = true;
@@ -125,43 +136,73 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	}
 	// -----------------------------------------------------------------------------
 
+	public void setClientName(final String newClientName)
+	{
+		currentCid = BucketsWithGraphics.ClientIdentification.newBuilder()
+				.setClientName(newClientName)
+				.build();
+	}
+
+	public void introduceClient()
+	{
+		final BucketsWithGraphics.ClientHello hi
+				= BucketsWithGraphics.ClientHello.newBuilder()
+					.setClientID( currentCid )
+					.setReturnURL( "no feedback" )
+					.build();
+		commBlocking.introduceClient(hi);
+	}
+
+	StreamObserver<BucketsWithGraphics.BatchOfGraphics> mainDataStream = null;
+	BucketsWithGraphics.BatchOfGraphics.Builder nodeBuilder = null;
+
+	public void startSendingGraphics(final String nodeName, final int nodeID)
+	{
+		if (nodeBuilder != null && mainDataStream != null) {
+			mainDataStream.onNext( nodeBuilder.build() );
+		}
+
+		//new building
+		nodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
+					.setClientID( currentCid )
+					.setCollectionName( currentCollectionName )
+					.setDataName( nodeName )
+					.setDataID( nodeID );
+	}
+
 	public void sendMessage(final String message)
 	{
-		comm.sendTick(PointsAndLinesOuterClass.TickMessage.newBuilder()
-			.setMessage(message).build(), getNoResponseExpectedObj());
+		final BucketsWithGraphics.TextMessage m
+				= BucketsWithGraphics.TextMessage.newBuilder()
+					.setMsg(message)
+					.build();
+
+		BucketsWithGraphics.SignedTextMessage si
+				= BucketsWithGraphics.SignedTextMessage.newBuilder()
+					.setClientID( currentCid )
+					.setClientMessage( m )
+					.build();
+		commBlocking.showMessage(si);
 	}
 	// -----------------------------------------------------------------------------
-
-	private StreamObserver<PointsAndLinesOuterClass.Empty> getNoResponseExpectedObj()
-	{
-		return new EmptyIgnoringStreamObservers();
-	}
-	// -----------------------------------------------------------------------------
-
-	float[] rgb = new float[3];
-	void unbakeRGB(int colorRGB) {
-		rgb[0] = (float)((colorRGB & 0xFF0000) >> 16) / 256.f;
-		rgb[1] = (float)((colorRGB & 0x00FF00) >>  8) / 256.f;
-		rgb[2] = (float)(colorRGB & 0x0000FF)         / 256.f;
-	}
-
-	HashMap<String,Integer> ids = new HashMap<>(10000);
-	int nextAvailId = 1;
-	int translateID(final String string_id) {
-		int int_id = ids.getOrDefault(string_id,-1);
-		if (int_id == -1) {
-			int_id = nextAvailId;
-			nextAvailId++;
-			ids.put(string_id,int_id);
-		}
-		return int_id;
-	}
 
 	HashMap<Integer,Float> xs = new HashMap<>(10000);
 	HashMap<Integer,Float> ys = new HashMap<>(10000);
 	float memorizeAndReturn(int id, float value, final HashMap<Integer,Float> memory) {
 		memory.put(id,value);
 		return value;
+	}
+
+	HashMap<String,Integer> ids = new HashMap<>(10000);
+	int nextAvailId = 1;
+	int translateID(final String string_id) {
+		int int_id = ids.getOrDefault(string_id, -1);
+		if (int_id == -1) {
+			int_id = nextAvailId;
+			nextAvailId++;
+			ids.put(string_id, int_id);
+		}
+		return int_id;
 	}
 	// -----------------------------------------------------------------------------
 
@@ -173,39 +214,38 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	@Override
 	public void addNode(String id, String label, int colorRGB, int x, int y, int width, int height) {
 		if (!isValid) return;
-		unbakeRGB(colorRGB);
-		int iid = translateID(id);
-		PointsAndLinesOuterClass.PointAsBall p = PointsAndLinesOuterClass.PointAsBall.newBuilder()
-				.setID(iid)
-				.setX(memorizeAndReturn(iid, x,xs))
-				.setZ(memorizeAndReturn(iid,-y,ys))
-				.setY(z_coord)
-				.setT(0)
-				.setLabel(label)
-				.setColorR(rgb[0])
-				.setColorG(rgb[1])
-				.setColorB(rgb[2])
-				.setRadius(width)
-				.build();
-		nodes.onNext(p);
-		nodesCnt++;
+
+		final int i = translateID(id);
+		memorizeAndReturn(i, x, xs);
+		memorizeAndReturn(i, y, ys);
+
+		BucketsWithGraphics.SphereParameters.Builder s = BucketsWithGraphics.SphereParameters.newBuilder();
+		s.setCentre( BucketsWithGraphics.Vector3D.newBuilder()
+				.setX(x).setY(z_coord).setZ(y).build() );
+		s.setTime(0);
+		s.setRadius(width);
+		s.setColorXRGB(colorRGB);
+		//logger.info("adding sphere: "+s);
+		nodeBuilder.addSpheres(s);
 	}
 
 	@Override
 	public void addStraightLine(String fromId, String toId) {
 		if (!isValid) return;
-		PointsAndLinesOuterClass.LineWithIDs l = PointsAndLinesOuterClass.LineWithIDs.newBuilder()
-				.setID(translateID(toId))
-				.setFromPointID(translateID(fromId))
-				.setToPointID(translateID(toId))
-				.setLabel(fromId+" -> "+toId)
-				.setColorR(rgb[0])
-				.setColorG(rgb[1])
-				.setColorB(rgb[2])
-				.setRadius(lineRadius)
-				.build();
-		lines.onNext(l);
-		linesCnt++;
+
+		final int fi = translateID(fromId);
+		final int ti = translateID(toId);
+
+		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
+		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
+				.setX(xs.get(fi)).setY(z_coord).setZ(ys.get(fi)).build() );
+		l.setEndPos( BucketsWithGraphics.Vector3D.newBuilder()
+				.setX(xs.get(ti)).setY(z_coord).setZ(ys.get(ti)).build() );
+		l.setTime(0);
+		l.setRadius(lineRadius);
+		l.setColorIdx(0);
+		//logger.info("adding line: "+l);
+		nodeBuilder.addLines(l);
 	}
 
 	@Override
@@ -223,6 +263,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	public void addBendedLine(String fromId, String toId, int toX, int toY, int bendingOffsetY) {
 		if (!isValid) return;
 
+		/*
 		final int fid = translateID(fromId);
 		final int tid = translateID(toId);
 
@@ -257,6 +298,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.build();
 		linePs.onNext(l);
 		linePsCnt++;
+		*/
 	}
 
 	@Override
