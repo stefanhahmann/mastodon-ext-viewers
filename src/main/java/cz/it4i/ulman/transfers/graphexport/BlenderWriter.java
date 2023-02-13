@@ -222,6 +222,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	public void addNode(String id, String label, int colorRGB, int x, int y, int width, int height) {
 		if (!isValid) return;
 
+		y *= -1;
 		final int i = translateID(id);
 		memorizeAndReturn(i, x, xs);
 		memorizeAndReturn(i, y, ys);
