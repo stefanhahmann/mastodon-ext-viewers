@@ -116,9 +116,16 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				wantStillWaitTime -= checkingPeriod;
 				Thread.sleep(checkingPeriod * 1000); //seconds -> milis
 			}
-			//but even when it claims "READY", it still needs some grace time to finish any commencing transfers
-			Thread.sleep( 5000);
-			channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+			//but even when it claims "READY", it still needs some grace time to finish any commencing transfers;
+			//request it to stop whenever it can, then keep asking when it's done
+			channel.shutdown();
+			wantStillWaitTime = 20;
+			while (!channel.isTerminated() && wantStillWaitTime > 0) {
+				wantStillWaitTime -= checkingPeriod;
+				Thread.sleep(checkingPeriod * 1000); //seconds -> milis
+			}
+			//last 10secs extra if it is still not closed...
+			channel.awaitTermination(10, TimeUnit.SECONDS);
 		}
 		catch (InterruptedException e) {
 			/* don't care that waiting was interrupted */
