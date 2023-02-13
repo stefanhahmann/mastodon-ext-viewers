@@ -47,7 +47,10 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 
 	//NB: persist = false because we read/store ourselves
 	@Parameter(label = "Nickname of this Mastodon instance (ns):", initializer = "loadDataNickname", persist = false)
-	String dataNickname = "Mastodon1";
+	String clientName = "Mastodon1";
+
+	@Parameter(label = "Nickname of this displayed (sub)tree:")
+	private String dataName = "view1";
 
 	/** this param comes from the caller and should identify the project behind this */
 	@Parameter(persist = false, required = false)
@@ -57,10 +60,10 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	PrefService prefService;
 	//
 	private void loadDataNickname() {
-		dataNickname = PerProjectPrefsService.loadStringParam(prefService,this.getClass(),projectID,"dataNickname","Mastodon1");
+		clientName = PerProjectPrefsService.loadStringParam(prefService,this.getClass(),projectID,"dataNickname","Mastodon1");
 	}
 	private void storeDataNickname() {
-		PerProjectPrefsService.storeStringParam(prefService,this.getClass(),projectID,"dataNickname",dataNickname);
+		PerProjectPrefsService.storeStringParam(prefService,this.getClass(),projectID,"dataNickname", clientName);
 	}
 
 	@Parameter(label = "Address of the listening Blender:",
@@ -85,11 +88,11 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	@Override
 	public void run() {
 		storeDataNickname();
-		final BlenderWriter bw = new BlenderWriter(url,dataNickname,logService);
+		final BlenderWriter bw = new BlenderWriter(url, clientName,logService);
 		bw.lineRadius = defaultLineWidth*5;
 		bw.z_coord = defaultZCoord;
 		bw.sendMessage("I've been just created...");
-		bw.startSendingGraphics("some tree",42);
+		bw.startSendingGraphics(dataName,42);
 		logService.info("initiated connection to Blender");
 		//
 		worker = bw;
