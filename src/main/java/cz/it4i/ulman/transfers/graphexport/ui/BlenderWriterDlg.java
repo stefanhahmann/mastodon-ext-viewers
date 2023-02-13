@@ -40,7 +40,7 @@ import org.scijava.plugin.Plugin;
 public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Command {
 	// ------ options and setup of this particular export mode ------
 	@Parameter(label = "Connecting line width:")
-	float defaultLineWidth = 5;
+	float defaultLineWidth = 10;
 
 	@Parameter(label = "Use this Z-position:")
 	float defaultZCoord = 0;
@@ -65,12 +65,12 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 
 	@Parameter(label = "Address of the listening Blender:",
 		description = "Provide always in the form hostname:port number.")
-	String url = "localhost:9081";
+	String url = "localhost:9083";
 
 	@Override
 	void provideDefaults() {
 		xColumnWidth = 100;
-		defaultNodeWidth = 15;
+		defaultNodeWidth = 10;
 	}
 
 	@Parameter
@@ -85,10 +85,12 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	@Override
 	public void run() {
 		storeDataNickname();
-		final BlenderWriter bw = new BlenderWriter(url,logService);
-		bw.lineRadius = defaultLineWidth / 2.f;
+		final BlenderWriter bw = new BlenderWriter(url,dataNickname,logService);
+		bw.lineRadius = defaultLineWidth*5;
 		bw.z_coord = defaultZCoord;
-		bw.sendMessage(dataNickname);
+		bw.sendMessage("I've been just created...");
+		bw.startSendingGraphics("some tree",42);
+		logService.info("initiated connection to Blender");
 		//
 		worker = bw;
 	}
