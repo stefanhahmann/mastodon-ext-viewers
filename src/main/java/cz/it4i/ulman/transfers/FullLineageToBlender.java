@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 @Plugin( type = Command.class, name = "Display lineage in SimViewer" )
-public class LineageToSimViewer extends DynamicCommand {
+public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(persist = false)
 	private MamutPluginAppModel pluginAppModel;
 

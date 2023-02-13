@@ -153,7 +153,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	private void simviewerConnection()
 	{
 		this.getContext().getService(CommandService.class).run(
-			LineageToSimViewer.class, true,
+			FullLineageToBlender.class, true,
 			"pluginAppModel", pluginAppModel);
 	}
 
