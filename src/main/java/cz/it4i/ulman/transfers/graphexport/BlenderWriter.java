@@ -263,42 +263,24 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	public void addBendedLine(String fromId, String toId, int toX, int toY, int bendingOffsetY) {
 		if (!isValid) return;
 
-		/*
 		final int fid = translateID(fromId);
 		final int tid = translateID(toId);
 
-		PointsAndLinesOuterClass.LineWithPositions l = PointsAndLinesOuterClass.LineWithPositions.newBuilder()
-				.setID(tid)
-				.setFromX(xs.get(fid))
-				.setFromZ(ys.get(fid))
-				.setFromY(z_coord)
-				.setToX(toX)
-				.setToZ(-toY-bendingOffsetY)
-				.setToY(z_coord)
-				.setLabel(fromId+" -> "+toId+" first")
-				.setColorR(rgb[0])
-				.setColorG(rgb[1])
-				.setColorB(rgb[2])
-				.setRadius(lineRadius)
-				.build();
-		linePs.onNext(l);
-		l = PointsAndLinesOuterClass.LineWithPositions.newBuilder()
-				.setID(tid+30000)
-				.setFromX(toX)
-				.setFromZ(-toY-bendingOffsetY)
-				.setFromY(z_coord)
-				.setToX(toX)
-				.setToZ(-toY)
-				.setToY(z_coord)
-				.setLabel(fromId+" -> "+toId+" second")
-				.setColorR(rgb[0])
-				.setColorG(rgb[1])
-				.setColorB(rgb[2])
-				.setRadius(lineRadius)
-				.build();
-		linePs.onNext(l);
-		linePsCnt++;
-		*/
+		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
+		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
+				.setX(xs.get(fid)).setY(z_coord).setZ(ys.get(fid)).build() );
+		l.setEndPos( BucketsWithGraphics.Vector3D.newBuilder()
+				.setX(xs.get(tid)).setY(z_coord).setZ(ys.get(tid)-bendingOffsetY).build() );
+		l.setTime(0);
+		l.setRadius(lineRadius);
+		l.setColorIdx(0);
+		nodeBuilder.addLines(l);
+
+		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
+				.setX(xs.get(tid)).setY(z_coord).setZ(ys.get(tid)-bendingOffsetY).build() );
+		l.setEndPos( BucketsWithGraphics.Vector3D.newBuilder()
+				.setX(xs.get(tid)).setY(z_coord).setZ(ys.get(tid)).build() );
+		nodeBuilder.addLines(l);
 	}
 
 	@Override
