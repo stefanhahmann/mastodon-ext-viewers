@@ -7,11 +7,13 @@ import cz.it4i.ulman.transfers.graphics.protocol.BucketsWithGraphics;
 import io.grpc.stub.StreamObserver;
 import net.imglib2.RealPoint;
 import net.imglib2.realtransform.AffineTransform3D;
+import org.mastodon.graph.GraphChangeListener;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.spatial.SpatialIndex;
 import org.mastodon.model.tag.TagSetStructure;
+import org.mastodon.spatial.VertexPositionListener;
 import org.mastodon.ui.coloring.GraphColorGenerator;
 import org.mastodon.ui.coloring.DefaultGraphColorGenerator;
 import org.mastodon.ui.coloring.TagSetGraphColorGenerator;
@@ -60,11 +62,15 @@ public class BdvToBlenderView {
 
 		//register the BDV listener and start the thread
 		viewBdv.getViewerPanelMamut().renderTransformListeners().add(bdvUpdateListener);
+		appModel.getAppModel().getModel().getGraph().addVertexPositionListener(bdvUpdateListener);
+		appModel.getAppModel().getModel().getGraph().addGraphChangeListener(bdvUpdateListener);
 		blenderSenderThread.start();
 
 		viewBdv.onClose(() -> {
 			System.out.println("Cleaning up while BDV to Blender window is closing.");
 			viewBdv.getViewerPanelMamut().renderTransformListeners().remove(bdvUpdateListener);
+			appModel.getAppModel().getModel().getGraph().removeGraphChangeListener(bdvUpdateListener);
+			appModel.getAppModel().getModel().getGraph().removeVertexPositionListener(bdvUpdateListener);
 			viewBdv = null;
 			blenderSenderThread.stopTheWatching();
 			conn.closeConnection();
@@ -72,7 +78,7 @@ public class BdvToBlenderView {
 		});
 	}
 
-	class BdvViewUpdateListener implements TransformListener<AffineTransform3D>
+	class BdvViewUpdateListener implements TransformListener<AffineTransform3D>, GraphChangeListener, VertexPositionListener
 	{
 		final MamutViewBdv myBdvIamServicing;
 		BdvViewUpdateListener(final MamutViewBdv viewBdv) {
@@ -81,6 +87,10 @@ public class BdvToBlenderView {
 
 		@Override
 		public void transformChanged(AffineTransform3D affineTransform3D) { somethingChanged(); }
+		@Override
+		public void graphChanged() { somethingChanged(); }
+		@Override
+		public void vertexPositionChanged(Object vertex) { somethingChanged(); }
 
 		void somethingChanged() {
 			timeStampOfLastRequest = System.currentTimeMillis();
