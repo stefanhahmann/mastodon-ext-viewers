@@ -91,6 +91,11 @@ public class FullLineageToBlender extends DynamicCommand {
 			final StreamObserver<BucketsWithGraphics.BatchOfGraphics> dataSender
 					= commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
 
+			final BucketsWithGraphics.Vector3D.Builder vBuilder
+					= BucketsWithGraphics.Vector3D.newBuilder();
+			final BucketsWithGraphics.SphereParameters.Builder sBuilder
+					= BucketsWithGraphics.SphereParameters.newBuilder();
+
 			final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 					logService.subLogger("export of " + dataName));
 			AtomicInteger currentColorID = new AtomicInteger(1);
@@ -103,17 +108,16 @@ public class FullLineageToBlender extends DynamicCommand {
 						.setDataID(root.getInternalPoolIndex());
 
 				visitor.visitDownstreamSpots(root, spot -> {
-					BucketsWithGraphics.SphereParameters.Builder s = BucketsWithGraphics.SphereParameters.newBuilder();
-					s.setCentre( BucketsWithGraphics.Vector3D.newBuilder()
+					sBuilder.setCentre( vBuilder
+							//updates the builder content and builds inside setCentre()
 							.setX(spot.getFloatPosition(0))
 							.setY(spot.getFloatPosition(1))
-							.setZ(spot.getFloatPosition(2))
-							.build() );
-					s.setTime(spot.getTimepoint());
-					s.setRadius(scaleFactor * (float)spot.getBoundingSphereRadiusSquared());
-					s.setColorIdx(currentColorID.intValue() % 64);
-					//logService.info("adding sphere at: "+s.getTime());
-					nodeBuilder.addSpheres(s);
+							.setZ(spot.getFloatPosition(2)) );
+					sBuilder.setTime(spot.getTimepoint());
+					sBuilder.setRadius(scaleFactor * (float)spot.getBoundingSphereRadiusSquared());
+					sBuilder.setColorIdx(currentColorID.intValue() % 64);
+					//logService.info("adding sphere at: "+sBuilder.getTime());
+					nodeBuilder.addSpheres(sBuilder);
 				});
 				dataSender.onNext( nodeBuilder.build() );
 
@@ -121,24 +125,7 @@ public class FullLineageToBlender extends DynamicCommand {
 			});
 			dataSender.onCompleted();
 
-			//first, make sure the channel describe itself as "READY"
-			//logger.info("state: "+channel.getState(false).name());
-			int wantStillWaitTime = 20;
-			final int checkingPeriod = 2;
-			while (channel.getState(false) != ConnectivityState.READY && wantStillWaitTime > 0) {
-				wantStillWaitTime -= checkingPeriod;
-				Thread.sleep(checkingPeriod * 1000); //seconds -> milis
-			}
-			//but even when it claims "READY", it still needs some grace time to finish any commencing transfers;
-			//request it to stop whenever it can, then keep asking when it's done
-			channel.shutdown();
-			wantStillWaitTime = 20;
-			while (!channel.isTerminated() && wantStillWaitTime > 0) {
-				wantStillWaitTime -= checkingPeriod;
-				Thread.sleep(checkingPeriod * 1000); //seconds -> milis
-			}
-			//last 10secs extra if it is still not closed...
-			channel.awaitTermination(10, TimeUnit.SECONDS);
+			closeChannel(channel);
 		}
 		catch (StatusRuntimeException e) {
 			logService.error("Mastodon network sender: GRPC: " + e.getMessage());
@@ -146,5 +133,33 @@ public class FullLineageToBlender extends DynamicCommand {
 			logService.error("Mastodon network sender: Error: " + e.getMessage());
 			e.printStackTrace();
 		}
+	}
+
+
+	public static void closeChannel(final ManagedChannel channel)
+	throws InterruptedException {
+		closeChannel(channel, 15, 2);
+	}
+
+	public static void closeChannel(final ManagedChannel channel,
+	                                final int halfOfMaxWaitTimeInSeconds,
+	                                final int checkingPeriodInSeconds)
+	throws InterruptedException {
+		//first, make sure the channel describe itself as "READY"
+		int timeSpentWaiting = 0;
+		while (channel.getState(false) != ConnectivityState.READY && timeSpentWaiting < halfOfMaxWaitTimeInSeconds) {
+			timeSpentWaiting += checkingPeriodInSeconds;
+			Thread.sleep(checkingPeriodInSeconds * 1000L); //seconds -> milis
+		}
+		//but even when it claims "READY", it still needs some grace time to finish any commencing transfers;
+		//request it to stop whenever it can, then keep asking when it's done
+		channel.shutdown();
+		timeSpentWaiting = 0;
+		while (!channel.isTerminated() && timeSpentWaiting < halfOfMaxWaitTimeInSeconds) {
+			timeSpentWaiting += checkingPeriodInSeconds;
+			Thread.sleep(checkingPeriodInSeconds * 1000L); //seconds -> milis
+		}
+		//last few secs extra before a hard stop (if it is still not yet closed gracefully)
+		channel.awaitTermination(checkingPeriodInSeconds, TimeUnit.SECONDS);
 	}
 }
