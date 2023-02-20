@@ -72,24 +72,13 @@ public class FullLineageToBlender extends DynamicCommand {
 	public void run() {
 		//init the communication side
 		try {
-			final ManagedChannel channel = ManagedChannelBuilder.forTarget(connectURL).usePlaintext().build();
-			final ClientToServerGrpc.ClientToServerStub commContinuous = ClientToServerGrpc.newStub(channel);
-			final ClientToServerGrpc.ClientToServerBlockingStub commBlocking = ClientToServerGrpc.newBlockingStub(channel);
-
-			final BucketsWithGraphics.ClientIdentification currentCid = BucketsWithGraphics.ClientIdentification.newBuilder()
-					.setClientName(clientName)
-					.build();
-
-			//introduction first
-			final BucketsWithGraphics.ClientHello hi = BucketsWithGraphics.ClientHello.newBuilder()
-					.setClientID( currentCid )
-					.setReturnURL( "no feedback" )
-					.build();
-			commBlocking.introduceClient(hi);
+			final BlenderSendingUtils.BlenderConnectionHandle conn
+					= BlenderSendingUtils.connectToBlender(connectURL, clientName);
+			conn.sendInitialIntroHandshake();
 
 			//now keep pushing data away to the channel
 			final StreamObserver<BucketsWithGraphics.BatchOfGraphics> dataSender
-					= commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
+					= conn.commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
 
 			final BucketsWithGraphics.Vector3D.Builder vBuilder
 					= BucketsWithGraphics.Vector3D.newBuilder();
@@ -102,7 +91,7 @@ public class FullLineageToBlender extends DynamicCommand {
 
 			visitor.visitRootsFromEntireGraph( root -> {
 				final BucketsWithGraphics.BatchOfGraphics.Builder nodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
-						.setClientID(currentCid)
+						.setClientID(conn.clientIdObj)
 						.setCollectionName(dataName)
 						.setDataName(root.getLabel())
 						.setDataID(root.getInternalPoolIndex());
@@ -125,7 +114,7 @@ public class FullLineageToBlender extends DynamicCommand {
 			});
 			dataSender.onCompleted();
 
-			closeChannel(channel);
+			conn.closeConnection();
 		}
 		catch (StatusRuntimeException e) {
 			logService.error("Mastodon network sender: GRPC: " + e.getMessage());
@@ -133,33 +122,5 @@ public class FullLineageToBlender extends DynamicCommand {
 			logService.error("Mastodon network sender: Error: " + e.getMessage());
 			e.printStackTrace();
 		}
-	}
-
-
-	public static void closeChannel(final ManagedChannel channel)
-	throws InterruptedException {
-		closeChannel(channel, 15, 2);
-	}
-
-	public static void closeChannel(final ManagedChannel channel,
-	                                final int halfOfMaxWaitTimeInSeconds,
-	                                final int checkingPeriodInSeconds)
-	throws InterruptedException {
-		//first, make sure the channel describe itself as "READY"
-		int timeSpentWaiting = 0;
-		while (channel.getState(false) != ConnectivityState.READY && timeSpentWaiting < halfOfMaxWaitTimeInSeconds) {
-			timeSpentWaiting += checkingPeriodInSeconds;
-			Thread.sleep(checkingPeriodInSeconds * 1000L); //seconds -> milis
-		}
-		//but even when it claims "READY", it still needs some grace time to finish any commencing transfers;
-		//request it to stop whenever it can, then keep asking when it's done
-		channel.shutdown();
-		timeSpentWaiting = 0;
-		while (!channel.isTerminated() && timeSpentWaiting < halfOfMaxWaitTimeInSeconds) {
-			timeSpentWaiting += checkingPeriodInSeconds;
-			Thread.sleep(checkingPeriodInSeconds * 1000L); //seconds -> milis
-		}
-		//last few secs extra before a hard stop (if it is still not yet closed gracefully)
-		channel.awaitTermination(checkingPeriodInSeconds, TimeUnit.SECONDS);
 	}
 }
