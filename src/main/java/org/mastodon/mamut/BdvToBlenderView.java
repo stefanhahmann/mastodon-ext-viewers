@@ -172,7 +172,7 @@ public class BdvToBlenderView {
 					.setX( spotNewPos.getFloatPosition(0) )
 					.setY( spotNewPos.getFloatPosition(1) )
 					.setZ( spotNewPos.getFloatPosition(2) ) );
-			sBuilder.setRadius(0.3f * (float)s.getBoundingSphereRadiusSquared());
+			sBuilder.setRadius(0.7f * (float)Math.sqrt(s.getBoundingSphereRadiusSquared()));
 			sBuilder.setColorXRGB( colorizer.color(s) & 0x00FFFFFF );
 			spotsMsgBuilder.addSpheres( sBuilder );
 		});
