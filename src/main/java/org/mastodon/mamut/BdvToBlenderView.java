@@ -58,7 +58,7 @@ public class BdvToBlenderView {
 		//the most recent data if no updates came from BDV for a little while
 		//(this is _delayed_ handling of the data, skipping over any intermediate changes)
 		final BdvViewUpdateBlenderSenderThread blenderSenderThread
-				= new BdvViewUpdateBlenderSenderThread(bdvUpdateListener, 100);
+				= new BdvViewUpdateBlenderSenderThread(bdvUpdateListener, 60);
 
 		//register the BDV listener and start the thread
 		viewBdv.getViewerPanelMamut().renderTransformListeners().add(bdvUpdateListener);
