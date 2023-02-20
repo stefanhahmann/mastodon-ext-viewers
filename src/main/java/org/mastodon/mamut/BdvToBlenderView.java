@@ -8,8 +8,13 @@ import io.grpc.stub.StreamObserver;
 import net.imglib2.RealPoint;
 import net.imglib2.realtransform.AffineTransform3D;
 import org.mastodon.mamut.model.Spot;
+import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.spatial.SpatialIndex;
+import org.mastodon.model.tag.TagSetStructure;
+import org.mastodon.ui.coloring.GraphColorGenerator;
+import org.mastodon.ui.coloring.DefaultGraphColorGenerator;
+import org.mastodon.ui.coloring.TagSetGraphColorGenerator;
 
 public class BdvToBlenderView {
 	final MamutPluginAppModel appModel;
@@ -141,8 +146,13 @@ public class BdvToBlenderView {
 		//System.out.println("new tp: "+lastSentTimepoint+", and new transform: "+lastSentTransform);
 
 		sBuilder.setTime(0);
-		sBuilder.setColorIdx(1);
 		spotsMsgBuilder.clearSpheres();
+
+		final TagSetStructure.TagSet ts = viewBdv.getColoringModel().getTagSet();
+		final GraphColorGenerator<Spot, Link> colorizer
+				= ts != null ? new TagSetGraphColorGenerator<>(
+						appModel.getAppModel().getModel().getTagSetModel(), ts)
+				: new DefaultGraphColorGenerator<>();
 
 		final SpatialIndex<Spot> spots
 				= appModel.getAppModel().getModel().getSpatioTemporalIndex().getSpatialIndex(lastSentTimepoint);
@@ -153,6 +163,7 @@ public class BdvToBlenderView {
 					.setY( spotNewPos.getFloatPosition(1) )
 					.setZ( spotNewPos.getFloatPosition(2) ) );
 			sBuilder.setRadius(0.3f * (float)s.getBoundingSphereRadiusSquared());
+			sBuilder.setColorXRGB( colorizer.color(s) & 0x00FFFFFF );
 			spotsMsgBuilder.addSpheres( sBuilder );
 		});
 
