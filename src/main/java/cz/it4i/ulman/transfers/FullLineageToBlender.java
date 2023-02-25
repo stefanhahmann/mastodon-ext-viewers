@@ -29,22 +29,26 @@ package cz.it4i.ulman.transfers;
 
 import cz.it4i.ulman.transfers.graphics.EmptyIgnoringStreamObservers;
 import cz.it4i.ulman.transfers.graphics.protocol.BucketsWithGraphics;
-import cz.it4i.ulman.transfers.graphics.protocol.ClientToServerGrpc;
-import io.grpc.ConnectivityState;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.mastodon.mamut.model.Link;
+import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.tomancak.util.SpotsIterator;
 
+import org.mastodon.model.tag.TagSetStructure;
+import org.mastodon.ui.coloring.FixedColorGenerator;
+import org.mastodon.ui.coloring.GraphColorGenerator;
+import org.mastodon.ui.coloring.TagSetGraphColorGenerator;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -61,6 +65,23 @@ public class FullLineageToBlender extends DynamicCommand {
 
 	@Parameter(label = "Nickname of this displayed (sub)tree:")
 	private String dataName = "view1";
+
+	@Parameter(label = "Choose color scheme:", initializer = "readAvailColors", choices = {})
+	private String colorScheme = "All white";
+
+	void readAvailColors() {
+		//there gotta be at least one choice... e.g. when there's not a single tagset available
+		List<String> choices = new ArrayList<>(50);
+		choices.add("All white");
+
+		pluginAppModel.getAppModel().getModel()
+				.getTagSetModel()
+				.getTagSetStructure()
+				.getTagSets()
+				.forEach( ts -> choices.add(ts.getName()) );
+
+		this.getInfo().getMutableInput("colorScheme",String.class).setChoices( choices );
+	}
 
 	@Parameter(label = "Spheres scale:")
 	private float scaleFactor = 0.4f;
@@ -85,6 +106,20 @@ public class FullLineageToBlender extends DynamicCommand {
 			final BucketsWithGraphics.SphereParameters.Builder sBuilder
 					= BucketsWithGraphics.SphereParameters.newBuilder();
 
+			//<colors>
+			Optional<TagSetStructure.TagSet> ts = pluginAppModel.getAppModel().getModel()
+					.getTagSetModel()
+					.getTagSetStructure()
+					.getTagSets()
+					.stream()
+					.filter(_ts -> _ts.getName().equals(colorScheme))
+					.findFirst();
+			final GraphColorGenerator<Spot, Link> colorizer
+					= ts.isPresent() ? new TagSetGraphColorGenerator<>(
+						pluginAppModel.getAppModel().getModel().getTagSetModel(), ts.get())
+					: new FixedColorGenerator(255,255,255);
+			//</colors>
+
 			final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 					logService.subLogger("export of " + dataName));
 			AtomicInteger currentColorID = new AtomicInteger(1);
@@ -104,7 +139,7 @@ public class FullLineageToBlender extends DynamicCommand {
 							.setZ(spot.getFloatPosition(2)) );
 					sBuilder.setTime(spot.getTimepoint());
 					sBuilder.setRadius(scaleFactor * (float)Math.sqrt(spot.getBoundingSphereRadiusSquared()));
-					sBuilder.setColorIdx(currentColorID.intValue() % 64);
+					sBuilder.setColorXRGB( colorizer.color(spot) );
 					//logService.info("adding sphere at: "+sBuilder.getTime());
 					nodeBuilder.addSpheres(sBuilder);
 				});
