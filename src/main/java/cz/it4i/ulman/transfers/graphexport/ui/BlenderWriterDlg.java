@@ -40,14 +40,17 @@ import org.scijava.plugin.Plugin;
 public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Command {
 	// ------ options and setup of this particular export mode ------
 	@Parameter(label = "Connecting line width:")
-	float defaultLineWidth = 5;
+	float defaultLineWidth = 10;
 
 	@Parameter(label = "Use this Z-position:")
 	float defaultZCoord = 0;
 
 	//NB: persist = false because we read/store ourselves
 	@Parameter(label = "Nickname of this Mastodon instance (ns):", initializer = "loadDataNickname", persist = false)
-	String dataNickname = "Mastodon1";
+	String clientName = "Mastodon1";
+
+	@Parameter(label = "Nickname of this displayed (sub)tree:")
+	private String dataName = "view1";
 
 	/** this param comes from the caller and should identify the project behind this */
 	@Parameter(persist = false, required = false)
@@ -57,20 +60,20 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	PrefService prefService;
 	//
 	private void loadDataNickname() {
-		dataNickname = PerProjectPrefsService.loadStringParam(prefService,this.getClass(),projectID,"dataNickname","Mastodon1");
+		clientName = PerProjectPrefsService.loadStringParam(prefService,this.getClass(),projectID,"dataNickname","Mastodon1");
 	}
 	private void storeDataNickname() {
-		PerProjectPrefsService.storeStringParam(prefService,this.getClass(),projectID,"dataNickname",dataNickname);
+		PerProjectPrefsService.storeStringParam(prefService,this.getClass(),projectID,"dataNickname", clientName);
 	}
 
 	@Parameter(label = "Address of the listening Blender:",
 		description = "Provide always in the form hostname:port number.")
-	String url = "localhost:9081";
+	String url = "localhost:9083";
 
 	@Override
 	void provideDefaults() {
 		xColumnWidth = 100;
-		defaultNodeWidth = 15;
+		defaultNodeWidth = 10;
 	}
 
 	@Parameter
@@ -85,10 +88,12 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	@Override
 	public void run() {
 		storeDataNickname();
-		final BlenderWriter bw = new BlenderWriter(url,logService);
-		bw.lineRadius = defaultLineWidth / 2.f;
+		final BlenderWriter bw = new BlenderWriter(url, clientName,logService);
+		bw.lineRadius = defaultLineWidth*5;
 		bw.z_coord = defaultZCoord;
-		bw.sendMessage(dataNickname);
+		bw.sendMessage("I've been just created...");
+		bw.startSendingGraphics(dataName,42);
+		logService.info("initiated connection to Blender");
 		//
 		worker = bw;
 	}

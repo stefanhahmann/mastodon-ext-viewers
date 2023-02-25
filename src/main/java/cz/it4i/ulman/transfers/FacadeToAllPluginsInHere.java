@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import io.scif.gui.DefaultGUIService;
 import org.mastodon.app.ui.ViewMenuBuilder;
+import org.mastodon.mamut.BdvToBlenderView;
 import org.mastodon.mamut.plugin.MamutPlugin;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.MamutAppModel;
@@ -58,11 +59,13 @@ import org.scijava.ui.behaviour.util.RunnableAction;
 public class FacadeToAllPluginsInHere extends AbstractContextual implements MamutPlugin
 {
 	//"IDs" of all plug-ins wrapped in this class
-	private static final String SV_OPEN = "[displays] sciview and SimViewer";
+	private static final String BDV_SPOTS_EXPORTS = "[displays] spots-exporting BDV";
+	private static final String ALL_SPOTS_EXPORTS = "[displays] all spots exports";
 	private static final String LINEAGE_EXPORTS = "[displays] lineage exports";
 	private static final String LINEAGE_EXPORTS_NQ = "[displays] lineage exports w/o dialog";
 
-	private static final String[] SV_OPEN_KEYS = { "not mapped" };
+	private static final String[] BDV_SPOTS_EXPORTS_KEYS = { "not mapped" };
+	private static final String[] ALL_SPOTS_EXPORTS_KEYS = { "not mapped" };
 	private static final String[] LINEAGE_EXPORTS_KEYS = { "not mapped" };
 	private static final String[] LINEAGE_EXPORTS_NQ_KEYS = { "ctrl D" };
 	//------------------------------------------------------------------------
@@ -71,7 +74,8 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	private final static Map< String, String > menuTexts = new HashMap<>();
 	static
 	{
-		menuTexts.put(SV_OPEN,            "Connect to SimViewer");
+		menuTexts.put(BDV_SPOTS_EXPORTS,  "BDV Spots To Blender");
+		menuTexts.put(ALL_SPOTS_EXPORTS,  "All Spots To Blender");
 		menuTexts.put(LINEAGE_EXPORTS,    "Lineage Exports");
 		menuTexts.put(LINEAGE_EXPORTS_NQ, "Lineage Exports - Quick Repeat");
 	}
@@ -83,7 +87,8 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		return Collections.singletonList( menu( "Plugins",
 			menu( "Auxiliary Displays",
-				item(SV_OPEN),
+				item(BDV_SPOTS_EXPORTS),
+				item(ALL_SPOTS_EXPORTS),
 				item(LINEAGE_EXPORTS),
 				item(LINEAGE_EXPORTS_NQ)
 			)
@@ -102,7 +107,8 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		@Override
 		public void getCommandDescriptions( final CommandDescriptions descriptions )
 		{
-			descriptions.add(SV_OPEN, SV_OPEN_KEYS, "");
+			descriptions.add(BDV_SPOTS_EXPORTS, BDV_SPOTS_EXPORTS_KEYS, "BDV-SPOTS: does this show up anywhere?");
+			descriptions.add(ALL_SPOTS_EXPORTS, ALL_SPOTS_EXPORTS_KEYS, "");
 			descriptions.add(LINEAGE_EXPORTS, LINEAGE_EXPORTS_KEYS, "");
 			descriptions.add(LINEAGE_EXPORTS_NQ, LINEAGE_EXPORTS_NQ_KEYS, "");
 		}
@@ -110,7 +116,8 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	//------------------------------------------------------------------------
 
 
-	private final AbstractNamedAction actionOpen;
+	private final AbstractNamedAction actionBdvExport;
+	private final AbstractNamedAction actionAllExport;
 	private final AbstractNamedAction actionLineageExport;
 	private final AbstractNamedAction actionLineageExport_NQ;
 
@@ -118,9 +125,10 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 	public FacadeToAllPluginsInHere()
 	{
-		actionOpen             = new RunnableAction( SV_OPEN,            this::simviewerConnection );
-		actionLineageExport    = new RunnableAction( LINEAGE_EXPORTS,    this::exportFullLineage );
-		actionLineageExport_NQ = new RunnableAction( LINEAGE_EXPORTS_NQ, this::exportFullLineageFast );
+		actionBdvExport        = new RunnableAction( BDV_SPOTS_EXPORTS,  this::openBdvToBlenderWindow);
+		actionAllExport        = new RunnableAction( ALL_SPOTS_EXPORTS,  this::sendAllToBlender);
+		actionLineageExport    = new RunnableAction( LINEAGE_EXPORTS,    this::sendTreesToBlender);
+		actionLineageExport_NQ = new RunnableAction( LINEAGE_EXPORTS_NQ, this::sendTreesToBlender_fastWithoutAsking);
 		updateEnabledActions();
 	}
 
@@ -134,7 +142,8 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	@Override
 	public void installGlobalActions( final Actions actions )
 	{
-		actions.namedAction(actionOpen,             SV_OPEN_KEYS );
+		actions.namedAction(actionBdvExport,        BDV_SPOTS_EXPORTS_KEYS );
+		actions.namedAction(actionAllExport,        ALL_SPOTS_EXPORTS_KEYS );
 		actions.namedAction(actionLineageExport,    LINEAGE_EXPORTS_KEYS );
 		actions.namedAction(actionLineageExport_NQ, LINEAGE_EXPORTS_NQ_KEYS );
 	}
@@ -143,21 +152,31 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	private void updateEnabledActions()
 	{
 		final MamutAppModel appModel = ( pluginAppModel == null ) ? null : pluginAppModel.getAppModel();
-		actionOpen.setEnabled( appModel != null );
+		actionBdvExport.setEnabled( appModel != null );
+		actionAllExport.setEnabled( appModel != null );
 		actionLineageExport.setEnabled( appModel != null );
 		actionLineageExport_NQ.setEnabled( appModel != null );
 	}
 	//------------------------------------------------------------------------
 	//------------------------------------------------------------------------
 
-	private void simviewerConnection()
+	private void openBdvToBlenderWindow()
+	{
+		new BdvToBlenderView(pluginAppModel)
+				.openUseAutoCleanBdvToBlenderView(
+						"localhost:9083",
+						"test BDV mastodon",
+						"synchronized BDV windows");
+	}
+
+	private void sendAllToBlender()
 	{
 		this.getContext().getService(CommandService.class).run(
-			LineageToSimViewer.class, true,
+			FullLineageToBlender.class, true,
 			"pluginAppModel", pluginAppModel);
 	}
 
-	private void exportFullLineage()
+	private void sendTreesToBlender()
 	{
 		this.getContext().getService(CommandService.class).run(
 			LineageExporter.class, true,
@@ -166,7 +185,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 						.getProject().getProjectRoot().getName());
 	}
 
-	private void exportFullLineageFast()
+	private void sendTreesToBlender_fastWithoutAsking()
 	{
 		//let's create a head-less context (which is, however, completely isolated from the current one!)
 		final List<Class<? extends Service>> serviceList = this.getContext().getServiceIndex().stream()

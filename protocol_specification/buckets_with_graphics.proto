@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package transfers_graphics_protocol;
+option java_package = "cz.it4i.ulman.transfers.graphics.protocol";
+
+
+service ClientToServer {
+	/**
+	 * Client should start communication with this message.
+	 *
+	 * In this message the client may (not "must") additionally register
+	 * a call back URL at which the server will be sending feedback
+	 * notifications about changes to the displayed graphics, e.g.,
+	 * color changed, position update, (un)selected, focused etc.
+	 *
+	 * If this message is omited, unmatched incoming requests will
+	 * be placed into "unknown_source" collection.
+	 */
+	rpc introduceClient(ClientHello) returns (Empty) {}
+
+	/**
+	 * Several batches of graphics are requested to be displayed.
+	 *
+	 * One such batch defines graphics instances (spheres, lines, vectors in xyzt)
+	 * that shall be displayed as one entity, e.g., as one Blender object/node.
+	 *
+	 * Since the display need not be able to distinguish among instances
+	 * within the batch, only one ID for the full batch is transfered and,
+	 * consequently, no IDs for the individual instances are recognized
+	 * and thus sent over.
+	 *
+	 * Additionally, each batch must be placed in a particular collection
+	 * using which clients can be grouping their content, client can create
+	 * many collections.
+	 *
+	 * If a name of already existing collection is (re)used, the new content
+	 * will be added to it. Similarily, if the same batch name is used, the
+	 * instances will be added to its corresponding entity; even the instances
+	 * may repeat in which case they will be there just multiple times.
+	 */
+	rpc addGraphics (stream BatchOfGraphics) returns (Empty) {}
+
+	/**
+	 * The same as addGraphics() except that when sending content to an
+	 * already existing batch, the previous content is first cleared before
+	 * the new (now submitted) one is added.
+	 */
+	rpc replaceGraphics (stream BatchOfGraphics) returns (Empty) {}
+
+	/**
+	 * Asks the receiver to show (not mandated how exactly) the message,
+	 * e.g., on the console or into a log window.
+	 */
+	rpc showMessage (SignedTextMessage) returns (Empty) {}
+
+	rpc focusEvent   (SignedClickedIDs)     returns (Empty) {}
+	rpc unfocusEvent (ClientIdentification) returns (Empty) {}
+
+	rpc selectEvent   (SignedClickedIDs) returns (Empty) {}
+	rpc unselectEvent (SignedClickedIDs) returns (Empty) {}
+	//TODO: unselectAllEvent
+	//TODO: selectAllEvent
+
+	//TODO: upload (also replaces) color palette (palette_name, [name,r,g,b]+)
+	//TODO: delete color palette
+}
+
+
+service ServerToClient {
+	rpc showMessage (TextMessage) returns (Empty) {}
+
+	rpc focusEvent   (ClickedIDs) returns (Empty) {}
+	rpc unfocusEvent (Empty)      returns (Empty) {}
+
+	rpc selectEvent   (ClickedIDs) returns (Empty) {}
+	rpc unselectEvent (ClickedIDs) returns (Empty) {}
+}
+
+
+message Empty {
+}
+
+message ClientIdentification {
+	string clientName = 1;
+}
+
+message ClientHello {
+	// name of source
+	ClientIdentification clientID = 1;
+
+	// URL for server-to-source communication, can be empty string too
+	string returnURL = 2;
+}
+
+
+/**
+ * Everything in the batch is treated as one non-dividable entity.
+ * The graphics elements, which is the content of this message, is
+ * indistinguishable among themselves, and it makes no sense to assign them
+ * anything specific to them, anything individual. As a consequence, the
+ * source clientID, dataName, dataID etc. is given for the full batch and is
+ * understood to be valid for its full content, for all graphics element inside.
+ *
+ * In Blender, for example, it appears as one Blender object (listed as
+ * one element in the Outliner panel) that displays its content (which
+ * is the content of this message) using the instancing mechanism.
+ */
+message BatchOfGraphics {
+	ClientIdentification clientID = 1;
+	string collectionName  = 2;   // Label/name of this collection
+	string dataName        = 5;   // Label/name of this data group
+	uint64 dataID          = 6;   // ID in the realm of the source
+	//TODO: select color palette
+	repeated SphereParameters spheres = 10;
+	repeated LineParameters lines     = 11;
+	repeated VectorParameters vectors = 12;
+}
+
+
+message Vector3D {
+	float x = 1;
+	float y = 2;
+	float z = 3;
+}
+
+message SphereParameters {
+	Vector3D centre  = 1;
+	uint32 time      = 3;
+	float radius     = 4;
+	oneof color {
+		uint32 colorXRGB = 5;
+		uint32 colorIdx  = 6;
+	}
+}
+
+message LineParameters {
+	Vector3D startPos = 1;
+	Vector3D endPos   = 2;
+	uint32 time       = 3;
+	float radius      = 4;
+	oneof color {
+		uint32 colorXRGB = 5;
+		uint32 colorIdx  = 6;
+	}
+}
+
+message VectorParameters {
+	Vector3D startPos = 1;
+	Vector3D endPos   = 2;
+	uint32 time       = 3;
+	float radius      = 4;
+	oneof color {
+		uint32 colorXRGB = 5;
+		uint32 colorIdx  = 6;
+	}
+}
+
+
+message TextMessage {
+	string msg = 1;  // any message which the server is asked to possibly display
+}
+
+message SignedTextMessage {
+	ClientIdentification clientID = 1;
+	TextMessage clientMessage = 2;
+}
+
+
+message ClickedIDs {
+	repeated uint64 objIDs = 1;
+}
+
+message SignedClickedIDs {
+	ClientIdentification clientID = 1;
+	ClickedIDs clientClickedIDs = 2;
+}
