@@ -113,7 +113,9 @@ public class BlenderSendingUtils {
 	/** increases usage counter; and if the first use of it is detected,
 	 * the channel gets created and connected */
 	private ManagedChannel registerChannelUsage(final String url) {
-		openedChannels.putIfAbsent(url, ManagedChannelBuilder.forTarget(url).usePlaintext().build());
+		if (!openedChannels.containsKey(url)) {
+			openedChannels.put(url, ManagedChannelBuilder.forTarget(url).usePlaintext().build());
+		}
 		noOfOpenedChannelsUsers.put(url, noOfOpenedChannelsUsers.getOrDefault(url, 0)+1);
 		return openedChannels.get(url);
 	}
