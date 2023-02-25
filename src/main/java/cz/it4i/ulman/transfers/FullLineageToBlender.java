@@ -103,7 +103,7 @@ public class FullLineageToBlender extends DynamicCommand {
 							.setY(spot.getFloatPosition(1))
 							.setZ(spot.getFloatPosition(2)) );
 					sBuilder.setTime(spot.getTimepoint());
-					sBuilder.setRadius(scaleFactor * (float)spot.getBoundingSphereRadiusSquared());
+					sBuilder.setRadius(scaleFactor * (float)Math.sqrt(spot.getBoundingSphereRadiusSquared()));
 					sBuilder.setColorIdx(currentColorID.intValue() % 64);
 					//logService.info("adding sphere at: "+sBuilder.getTime());
 					nodeBuilder.addSpheres(sBuilder);
