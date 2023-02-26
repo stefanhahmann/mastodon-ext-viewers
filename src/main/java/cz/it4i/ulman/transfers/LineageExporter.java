@@ -75,10 +75,6 @@ public class LineageExporter implements Command
 	@Parameter(persist = false, required = false)
 	private String projectID = "default";
 
-	@Parameter(label = "How to annotate the exported lineage:",
-			choices = {"no annotation","track durations in frames","track durations in SI units"} )
-	public String exportParams;
-
 	@Parameter(label = "How to sort the lineage:",
 			choices = { SortersChooserDlg.M_TRACKSCHEME, SortersChooserDlg.M_ALPHANUM,
 			            SortersChooserDlg.M_POLES, SortersChooserDlg.M_POLES_IC,
