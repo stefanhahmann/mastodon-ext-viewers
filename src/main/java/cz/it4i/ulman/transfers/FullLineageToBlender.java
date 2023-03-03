@@ -122,7 +122,6 @@ public class FullLineageToBlender extends DynamicCommand {
 
 			final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 					logService.subLogger("export of " + dataName));
-			AtomicInteger currentColorID = new AtomicInteger(1);
 
 			visitor.visitRootsFromEntireGraph( root -> {
 				final BucketsWithGraphics.BatchOfGraphics.Builder nodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
@@ -144,8 +143,6 @@ public class FullLineageToBlender extends DynamicCommand {
 					nodeBuilder.addSpheres(sBuilder);
 				});
 				dataSender.onNext( nodeBuilder.build() );
-
-				currentColorID.addAndGet(5);
 			});
 			dataSender.onCompleted();
 
