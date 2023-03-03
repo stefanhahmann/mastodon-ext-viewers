@@ -148,7 +148,11 @@ public class BdvToBlenderView {
 			= BucketsWithGraphics.SphereParameters.newBuilder();
 	final RealPoint spotNewPos = new RealPoint(3);
 
-	private static final float SPOT_SCALING_FOR_BLENDER = 1.0f;
+	private float spotScalingForBlender = 1.0f;
+	public BdvToBlenderView setSpheresScalingFactor(final float factor) {
+		spotScalingForBlender = factor;
+		return this;
+	}
 
 	synchronized
 	void sendBdvSpotsToBlender()
@@ -174,7 +178,7 @@ public class BdvToBlenderView {
 					.setX( spotNewPos.getFloatPosition(0) )
 					.setY( spotNewPos.getFloatPosition(1) )
 					.setZ( spotNewPos.getFloatPosition(2) ) );
-			sBuilder.setRadius(SPOT_SCALING_FOR_BLENDER * (float)Math.sqrt(s.getBoundingSphereRadiusSquared()));
+			sBuilder.setRadius(spotScalingForBlender * (float)Math.sqrt(s.getBoundingSphereRadiusSquared()));
 			sBuilder.setColorXRGB( colorizer.color(s) & 0x00FFFFFF );
 			spotsMsgBuilder.addSpheres( sBuilder );
 		});
