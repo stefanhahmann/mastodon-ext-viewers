@@ -27,10 +27,8 @@
  */
 package cz.it4i.ulman.transfers.embeddings;
 
-import cz.it4i.ulman.transfers.BdvToBlenderPlugin;
 import cz.it4i.ulman.transfers.DlBlenderInitProjectMenuItem;
 import org.mastodon.app.ui.ViewMenuBuilder;
-import org.mastodon.mamut.launcher.RecentProjectsPanel;
 import org.mastodon.mamut.plugin.MamutPlugin;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.ui.keymap.CommandDescriptionProvider;
@@ -52,7 +50,7 @@ import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
 
 @Plugin( type = DlBlenderInitProjectMenuItem.class )
-public class FixedFlatPlugin  extends AbstractContextual implements MamutPlugin {
+public class FlatViewPlugin extends AbstractContextual implements MamutPlugin {
 	public static final String KEYWORD_FOR_NO_SHORTCUT_ASSIGNMENT = "not mapped";
 
 	// DON'T CHANGE ANYTHING ABOVE
@@ -75,7 +73,7 @@ public class FixedFlatPlugin  extends AbstractContextual implements MamutPlugin 
 
 	public void run() {
 		this.getContext().getService(CommandService.class).run(
-				FixedFlat.class, true,
+				FlatView.class, true,
 				"pluginAppModel", pluginAppModel);
 	}
 	// -----------------------------------------------------------------------

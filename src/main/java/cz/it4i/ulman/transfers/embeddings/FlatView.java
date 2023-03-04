@@ -56,7 +56,7 @@ import java.util.Optional;
 import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
 
 @Plugin(type = Command.class, name = "Flat View Parameters")
-public class FixedFlat extends DynamicCommand {
+public class FlatView extends DynamicCommand {
 	@Parameter(label = "Label of north-pole spot:")
 	public String spotNorthPoleName;
 
