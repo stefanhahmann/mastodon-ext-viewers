@@ -7,6 +7,8 @@ topically related to exporting the tracking data (lineage trees) **outside Masto
 
 - sends to [Blender](https://www.blender.org/) the full lineage data with all tracks spots decimated into<br/>one graph vertex as in Mastodon->Window->New TrackScheme Hierarchy, [**demo video**](https://www.fi.muni.cz/~xulman/files/Mastodon/Blender_ng/demo_videos/MastodonBlender-demo-fullLineages.webm)<br/>(*find it here: Mastodon->Plugins->Auxiliary Displays->All Spots To Blender*),
 
+- sends to Blender the full lineage data with all tracks spots decimated into<br/>one graph vertex as in Mastodon->Window->New TrackScheme Hierarchy,<br/>and additionally visualized as if projected onto a cylinder, which got unfolded, [**demo picture**](doc/MastodonBlender_flatView.png)<br/>(*find it here: Mastodon->Plugins->Auxiliary Displays->Flat View*),
+
 - sends out the lineage tree(s) from all-available or selected-only spots<br/>(*find it here: Mastodon->Plugins->Auxiliary Displays->Lineage Exports*).
 
 
