@@ -25,46 +25,35 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.mastodon.ui.coloring;
+package cz.it4i.ulman.transfers;
 
-import org.mastodon.mamut.model.Link;
-import org.mastodon.mamut.model.Spot;
+import org.mastodon.mamut.BdvToBlenderView;
+import org.mastodon.mamut.plugin.MamutPluginAppModel;
+import org.scijava.command.Command;
+import org.scijava.plugin.Parameter;
+import org.scijava.plugin.Plugin;
 
-public class FixedColorGenerator implements GraphColorGenerator<Spot, Link> {
-	/**
-	 * Values should be <0.0 ; 1.0>
-	 */
-	public FixedColorGenerator(float r, float g, float b) {
-		int R = Math.max(0, Math.min(255, (int)(r*255) ));
-		int G = Math.max(0, Math.min(255, (int)(g*255) ));
-		int B = Math.max(0, Math.min(255, (int)(b*255) ));
-		rgb = (R << 16) + (G << 8) + B;
-	}
+@Plugin( type = Command.class, name = "Export all spots as they are currently displayed in an opened BDV" )
+public class BdvToBlenderPlugin implements Command {
+	@Parameter(persist = false)
+	private MamutPluginAppModel pluginAppModel;
 
-	/**
-	 * Values should be <0 ; 255>
-	 */
-	public FixedColorGenerator(int r, int g, int b) {
-		int R = Math.max(0, Math.min(255, r ));
-		int G = Math.max(0, Math.min(255, g ));
-		int B = Math.max(0, Math.min(255, b ));
-		rgb = (R << 16) + (G << 8) + B;
-	}
+	@Parameter
+	private String connectURL = "localhost:9083";
 
-	final int rgb;
+	@Parameter(label = "Nickname of this experiment data:")
+	private String clientName = "E1";
+
+	@Parameter(label = "Spheres scale factor:", min = "0.01")
+	float objScale = 1.0f;
 
 	@Override
-	public int color(Spot vertex) {
-		return rgb;
-	}
-
-	@Override
-	public int color(Link edge, Spot source, Spot target) {
-		return rgb;
-	}
-
-	@Override
-	public String toString() {
-		return String.format("%06x",rgb);
+	public void run() {
+		new BdvToBlenderView(pluginAppModel)
+				.setSpheresScalingFactor(objScale)
+				.openUseAutoCleanBdvToBlenderView(
+						connectURL,
+						clientName,
+						"synchronized BDV windows");
 	}
 }

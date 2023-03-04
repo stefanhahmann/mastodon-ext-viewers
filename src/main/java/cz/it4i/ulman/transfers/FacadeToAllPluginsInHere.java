@@ -162,11 +162,9 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 	private void openBdvToBlenderWindow()
 	{
-		new BdvToBlenderView(pluginAppModel)
-				.openUseAutoCleanBdvToBlenderView(
-						"localhost:9083",
-						"test BDV mastodon",
-						"synchronized BDV windows");
+		this.getContext().getService(CommandService.class).run(
+				BdvToBlenderPlugin.class, true,
+				"pluginAppModel", pluginAppModel);
 	}
 
 	private void sendAllToBlender()
