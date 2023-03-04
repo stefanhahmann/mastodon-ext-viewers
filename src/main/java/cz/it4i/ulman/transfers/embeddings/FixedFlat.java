@@ -103,6 +103,8 @@ public class FixedFlat extends DynamicCommand {
 		this.getInfo().getMutableInput("colorScheme",String.class).setChoices( choices );
 	}
 
+	@Parameter(label = "Show also debug-orientation vectors:")
+	public boolean showDebug = false;
 
 	@Parameter
 	private LogService logService;
@@ -120,6 +122,7 @@ public class FixedFlat extends DynamicCommand {
 			return;
 		}
 		final Vector3d posN = createVector3d(searchSpot.get());
+		final int debugTime = searchSpot.get().getTimepoint();
 		//
 		searchSpot = vertices.stream().filter(s -> s.getLabel().equals(spotSouthPoleName)).findFirst();
 		if (!searchSpot.isPresent()) {
@@ -146,7 +149,8 @@ public class FixedFlat extends DynamicCommand {
 		latCentre.mul( upVec.dot(frontVec) ).add(centre);
 		frontVec.add(centre)    //moves back to where the "view centre pole" is
 				.sub(latCentre);  //a vector again; finally, from latCentre to the "view centre pole"
-				.normalize();
+		final float debugViewCentreLength = (float)frontVec.length();
+		frontVec.normalize();
 		//
 		//upVec is a normal vector to a plane that includes latCentre and frontVec (and "view centre pole"),
 		//this creates the 3rd "coordinate axis" -- used to define fully the azimuth angle
@@ -187,6 +191,36 @@ public class FixedFlat extends DynamicCommand {
 					= BucketsWithGraphics.SphereParameters.newBuilder();
 
 			//send debug data
+			if (showDebug) {
+				final BucketsWithGraphics.BatchOfGraphics.Builder debugNodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
+						.setClientID(conn.clientIdObj)
+						.setCollectionName(dataName)
+						.setDataName("orientation outline")
+						.setDataID(0);
+				final BucketsWithGraphics.VectorParameters.Builder dBuilder
+						= BucketsWithGraphics.VectorParameters.newBuilder();
+				dBuilder.setStartPos(vBuilder.setX((float) centre.x).setY((float) centre.y).setZ((float) centre.z));
+				dBuilder.setEndPos(vBuilder.setX((float) posN.x).setY((float) posN.y).setZ((float) posN.z));
+				dBuilder.setTime(debugTime);
+				dBuilder.setRadius(10f);
+				dBuilder.setColorXRGB(0xFF0000);
+				debugNodeBuilder.addVectors(dBuilder);
+				//
+				//"front" axis towards the view centre spot
+				dBuilder.setStartPos(vBuilder.setX((float) latCentre.x).setY((float) latCentre.y).setZ((float) latCentre.z));
+				runner.set(frontVec).mul(debugViewCentreLength).add(latCentre);
+				dBuilder.setEndPos(vBuilder.setX((float) runner.x).setY((float) runner.y).setZ((float) runner.z));
+				dBuilder.setColorXRGB(0x00FF00);
+				debugNodeBuilder.addVectors(dBuilder);
+				//
+				//"side" aux vector (again, exists here to help with deciding the full azimuth)
+				dBuilder.setStartPos(vBuilder.setX((float) centre.x).setY((float) centre.y).setZ((float) centre.z));
+				runner.set(sideVec).mul(0.3f * debugViewCentreLength).add(centre);
+				dBuilder.setEndPos(vBuilder.setX((float) runner.x).setY((float) runner.y).setZ((float) runner.z));
+				dBuilder.setColorXRGB(0x0000FF);
+				debugNodeBuilder.addVectors(dBuilder);
+				dataSender.onNext(debugNodeBuilder.build());
+			}
 			//end of: send debug data
 
 			visitor.visitRootsFromEntireGraph( root -> {
