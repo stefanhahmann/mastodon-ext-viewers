@@ -154,7 +154,7 @@
 		<license.projectName>Online Mastodon Exports</license.projectName>
 		<package-name>cz.it4i.ulman.transfers</package-name>
 
-		<mastodon.version>1.0.0-beta-26-SNAPSHOT</mastodon.version>
+		<mastodon.version>1.0.0-beta-27-SNAPSHOT</mastodon.version>
 	</properties>
 
 	<repositories>
