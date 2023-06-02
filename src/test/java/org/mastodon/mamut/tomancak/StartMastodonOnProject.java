@@ -28,13 +28,12 @@
  */
 package org.mastodon.mamut.tomancak;
 
+import net.imagej.ImageJ;
 import org.mastodon.mamut.MainWindow;
 import org.mastodon.mamut.WindowManager;
 import org.mastodon.mamut.project.MamutProjectIO;
 import org.scijava.Context;
-import javax.swing.JFileChooser;
 import javax.swing.WindowConstants;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 import java.io.IOException;
 import mpicbg.spim.data.SpimDataException;
@@ -46,14 +45,17 @@ public class StartMastodonOnProject {
 
 	public static void main(String[] args) {
 		try {
-			String projectPath = "/home/ulman/Mette/CTC_screenRecordings_For_CzechTV_CBIA/PhC-C2DL-PSC/01_forFlatViewTesting.mastodon";
+			String projectPath = "/home/ulman/Mette/e1/E1_reduced.mastodon";
 
 			//not sure what this is good for but see it everywhere...
 			//(seems to give no effect on Linux)
 			System.setProperty( "apple.laf.useScreenMenuBar", "true" );
 
+			ImageJ ij = new ImageJ();
+			ij.ui().showUI();
+
 			//the central hub, a container to hold all
-			final WindowManager windowManager = new WindowManager( new Context() );
+			final WindowManager windowManager = new WindowManager( ij.getContext() );
 			windowManager.getProjectManager().open( new MamutProjectIO().load( projectPath ) );
 
 			//a GUI element wrapping around the hub

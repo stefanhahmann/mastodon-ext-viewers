@@ -175,12 +175,16 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 			});
 		});
 
-		float[] xy = { 0.f, 0.f };
+		double[] xy = { 0.f, 0.f };
+		Spot trackStarts = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
 		for (Spot m : mothers) {
 			get2DPos(m, xy);
+			visitor.findUpstreamSpot(m,trackStarts,999);
 			System.out.println("Mother "+m.getLabel()
 				+" at TP="+m.getTimepoint()+" @ xy="+xy[0]
 				+","+xy[1]+":");
+			System.out.println("  started with "+trackStarts.getLabel()
+				+" at TP="+trackStarts.getTimepoint());
 		}
 	}
 
@@ -189,7 +193,7 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 
 	Vector3d centre, upVec, latCentre, sideVec, frontVec;
 
-	void get2DPos(Spot spot, float[] xy) {
+	void get2DPos(Spot spot, double[] xy) {
 		runner.set(spot.getFloatPosition(0),spot.getFloatPosition(1),spot.getFloatPosition(2));
 		runnerProjectedToLateralPlane.set(runner); //a copy
 
@@ -204,7 +208,7 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 		double azimuthAng = Math.acos( runnerProjectedToLateralPlane.normalize().dot(frontVec) );
 		azimuthAng *= runnerProjectedToLateralPlane.dot(sideVec) < 0 ? +1 : -1;
 
-		double curX = azimuthSpacing*azimuthAng;
-		double curY = elevSpacing*elevAngle;
+		xy[0] = azimuthSpacing*azimuthAng;
+		xy[1] = elevSpacing*elevAngle;
 	}
 }
