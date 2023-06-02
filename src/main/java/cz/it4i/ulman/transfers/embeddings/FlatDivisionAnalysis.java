@@ -28,6 +28,7 @@
 package cz.it4i.ulman.transfers.embeddings;
 
 import org.joml.Vector3d;
+import org.mastodon.collection.ref.RefArrayList;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
@@ -166,10 +167,21 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 		final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 				logService.subLogger("flat export"));
 
+		org.mastodon.collection.RefList<Spot> mothers = new RefArrayList<>(vertices.getRefPool());
+
 		visitor.visitRootsFromEntireGraph( root -> {
 			visitor.visitDownstreamSpots(root, spot -> {
+				if (visitor.countDescendants(spot) == 2) mothers.add(spot);
 			});
 		});
+
+		float[] xy = { 0.f, 0.f };
+		for (Spot m : mothers) {
+			get2DPos(m, xy);
+			System.out.println("Mother "+m.getLabel()
+				+" at TP="+m.getTimepoint()+" @ xy="+xy[0]
+				+","+xy[1]+":");
+		}
 	}
 
 	final Vector3d runner = new Vector3d();
