@@ -73,8 +73,8 @@ public class FlatViewPlugin extends AbstractContextual implements MamutPlugin {
 
 	public void run() {
 		this.getContext().getService(CommandService.class).run(
-				//FlatView.class, true,
-				FlatDivisionAnalysis.class, true,
+				FlatView.class, true,
+				//FlatDivisionAnalysis.class, true,
 				"pluginAppModel", pluginAppModel);
 	}
 	// -----------------------------------------------------------------------

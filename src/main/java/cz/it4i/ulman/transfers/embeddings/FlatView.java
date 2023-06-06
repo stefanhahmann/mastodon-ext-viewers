@@ -33,6 +33,7 @@ import cz.it4i.ulman.transfers.graphics.protocol.BucketsWithGraphics;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.joml.Vector3d;
+import org.mastodon.collection.ref.RefArrayList;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
@@ -129,23 +130,23 @@ public class FlatView extends DynamicCommand {
 			logService.error("Couldn't find (south pole) spot with label "+spotSouthPoleName);
 			return;
 		}
-		final Vector3d centre = createVector3d(searchSpot.get());
+		centre = createVector3d(searchSpot.get());
 		centre.add(posN).div(2.0);
 		//
-		final Vector3d upVec = new Vector3d(posN).sub(centre).normalize();
+		upVec = new Vector3d(posN).sub(centre).normalize();
 
 		searchSpot = vertices.stream().filter(s -> s.getLabel().equals(spotViewCentreName)).findFirst();
 		if (!searchSpot.isPresent()) {
 			logService.error("Couldn't find (view centre pole) spot with label "+ spotViewCentreName);
 			return;
 		}
-		final Vector3d frontVec = createVector3d(searchSpot.get());
+		frontVec = createVector3d(searchSpot.get());
 		frontVec.sub(centre);
 		//
 		//move along upVec-given orientation to find latCentre such that
 		//the angle originalNorthPole-latCentre-theFrontPole is perpendicular,
 		//that said, we subtract the upVec contribution from the frontVec
-		final Vector3d latCentre = new Vector3d(upVec);
+		latCentre = new Vector3d(upVec);
 		latCentre.mul( upVec.dot(frontVec) ).add(centre);
 		frontVec.add(centre)    //moves back to where the "view centre pole" is
 				.sub(latCentre);  //a vector again; finally, from latCentre to the "view centre pole"
@@ -154,7 +155,7 @@ public class FlatView extends DynamicCommand {
 		//
 		//upVec is a normal vector to a plane that includes latCentre and frontVec (and "view centre pole"),
 		//this creates the 3rd "coordinate axis" -- used to define fully the azimuth angle
-		final Vector3d sideVec = frontVec.cross(upVec, new Vector3d());
+		sideVec = frontVec.cross(upVec, new Vector3d());
 
 		//<colors>
 		Optional<TagSetStructure.TagSet> ts = pluginAppModel.getAppModel().getModel()
@@ -189,6 +190,10 @@ public class FlatView extends DynamicCommand {
 					= BucketsWithGraphics.Vector3D.newBuilder();
 			final BucketsWithGraphics.SphereParameters.Builder sBuilder
 					= BucketsWithGraphics.SphereParameters.newBuilder();
+			final BucketsWithGraphics.LineParameters.Builder lBuilder
+					= BucketsWithGraphics.LineParameters.newBuilder();
+			final BucketsWithGraphics.VectorParameters.Builder aBuilder // a = arrow
+					= BucketsWithGraphics.VectorParameters.newBuilder();
 
 			//send debug data
 			if (showDebug) {
@@ -223,6 +228,14 @@ public class FlatView extends DynamicCommand {
 			}
 			//end of: send debug data
 
+			Spot trackEnds = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+			Spot trackStarts = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+			double[] xyS = { 0.f, 0.f };
+			double[] xyE = { 0.f, 0.f };
+			double[] xyD0 = { 0.f, 0.f };
+			double[] xyD1 = { 0.f, 0.f };
+			org.mastodon.collection.RefList<Spot> daughterList = new RefArrayList<>(vertices.getRefPool());
+
 			visitor.visitRootsFromEntireGraph( root -> {
 				final BucketsWithGraphics.BatchOfGraphics.Builder nodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
 						.setClientID(conn.clientIdObj)
@@ -255,10 +268,39 @@ public class FlatView extends DynamicCommand {
 					sBuilder.setColorXRGB( colorizer.color(spot) );
 					//logService.info("adding sphere at: "+sBuilder.getTime());
 					nodeBuilder.addSpheres(sBuilder);
+
+					if (visitor.countDescendants(spot) == 2) {
+						trackStarts.refTo(spot);
+						visitor.findUpstreamSpot(trackStarts,trackEnds,999);
+
+						get2DPos(trackStarts, xyS);
+						get2DPos(trackEnds, xyE);
+						lBuilder.setStartPos( vBuilder.setX( (float)xyS[0] ).setY( (float)xyS[1] ).setZ(0.f) );
+						lBuilder.setEndPos( vBuilder.setX( (float)xyE[0] ).setY( (float)xyE[1] ).setZ(0.f) );
+						lBuilder.setTime(spot.getTimepoint()+1);
+						lBuilder.setRadius(3.f);
+						lBuilder.setColorXRGB( colorizer.color(spot) );
+						nodeBuilder.addLines( lBuilder );
+
+						visitor.enlistDescendants(spot, daughterList);
+						if (daughterList.size() == 2) {
+							get2DPos(daughterList.get(0), xyD0);
+							get2DPos(daughterList.get(1), xyD1);
+							lBuilder.setStartPos( vBuilder.setX( (float)xyD0[0] ).setY( (float)xyD0[1] ).setZ(0.f) );
+							lBuilder.setEndPos( vBuilder.setX( (float)xyD1[0] ).setY( (float)xyD1[1] ).setZ(0.f) );
+							lBuilder.setTime(spot.getTimepoint()+1);
+							lBuilder.setRadius(3.f);
+							lBuilder.setColorXRGB( colorizer.color(spot) );
+							nodeBuilder.addLines( lBuilder );
+						}
+					}
 				});
 				dataSender.onNext( nodeBuilder.build() );
 			});
 			dataSender.onCompleted();
+
+			pluginAppModel.getAppModel().getModel().getGraph().releaseRef(trackStarts);
+			pluginAppModel.getAppModel().getModel().getGraph().releaseRef(trackEnds);
 
 			conn.closeConnection();
 		}
@@ -268,5 +310,29 @@ public class FlatView extends DynamicCommand {
 			logService.error("Mastodon network sender: Error: " + e.getMessage());
 			e.printStackTrace();
 		}
+	}
+
+	final Vector3d runner = new Vector3d();
+	final Vector3d runnerProjectedToLateralPlane = new Vector3d();
+
+	Vector3d centre, upVec, latCentre, sideVec, frontVec;
+
+	void get2DPos(Spot spot, double[] xy) {
+		runner.set(spot.getFloatPosition(0),spot.getFloatPosition(1),spot.getFloatPosition(2));
+		runnerProjectedToLateralPlane.set(runner); //a copy
+
+		runner.sub(centre).normalize();
+		double elevAngle = Math.acos( runner.dot(upVec) );
+
+		runnerProjectedToLateralPlane.sub(latCentre);
+		runner.set(upVec);
+		runner.mul( -1.0 * upVec.dot(runnerProjectedToLateralPlane) );
+		runnerProjectedToLateralPlane.add( runner );
+
+		double azimuthAng = Math.acos( runnerProjectedToLateralPlane.normalize().dot(frontVec) );
+		azimuthAng *= runnerProjectedToLateralPlane.dot(sideVec) < 0 ? +1 : -1;
+
+		xy[0] = azimuthSpacing*azimuthAng;
+		xy[1] = elevSpacing*elevAngle;
 	}
 }
