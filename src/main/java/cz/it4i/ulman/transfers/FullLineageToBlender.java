@@ -86,6 +86,10 @@ public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(label = "Spheres scale:")
 	private float scaleFactor = 0.4f;
 
+	//TODO: make a drop-down choice box: full data as one node, tree as one node, track as one node
+	@Parameter(label = "ala Matthias:")
+	private boolean doIndividualTracks = false;
+
 	@Parameter
 	private LogService logService;
 
@@ -123,14 +127,40 @@ public class FullLineageToBlender extends DynamicCommand {
 			final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 					logService.subLogger("export of " + dataName));
 
+			final BucketsWithGraphics.BatchOfGraphics.Builder[] nodeBuilder = { null };
+			final Spot motherSpotRef = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+
 			visitor.visitRootsFromEntireGraph( root -> {
-				final BucketsWithGraphics.BatchOfGraphics.Builder nodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
+				nodeBuilder[0] = BucketsWithGraphics.BatchOfGraphics.newBuilder()
 						.setClientID(conn.clientIdObj)
 						.setCollectionName(dataName)
 						.setDataName(root.getLabel())
 						.setDataID(root.getInternalPoolIndex());
 
 				visitor.visitDownstreamSpots(root, spot -> {
+					//am I the very first spot of a new track? (and should we care?)
+					//which breaks into:
+					//  - advance one up unless there's a mother
+					//  - if we haven't advanced, we're beginning of some track
+					if (doIndividualTracks) {
+						visitor.findUpstreamSpot(spot, motherSpotRef, 1);
+						if (motherSpotRef.getInternalPoolIndex() != spot.getInternalPoolIndex()
+							&& visitor.countDescendants(motherSpotRef) > 1)
+						{
+							//beginning of a new track, yay!
+							System.out.println("Found new beginning: "+spot.getLabel());
+							//finish the current bucket...
+							dataSender.onNext( nodeBuilder[0].build() );
+
+							//...and start a new one
+							nodeBuilder[0] = BucketsWithGraphics.BatchOfGraphics.newBuilder()
+									.setClientID(conn.clientIdObj)
+									.setCollectionName(dataName)
+									.setDataName(spot.getLabel())
+									.setDataID(spot.getInternalPoolIndex());
+						}
+					}
+
 					sBuilder.setCentre( vBuilder
 							//updates the builder content and builds inside setCentre()
 							.setX(spot.getFloatPosition(0))
@@ -140,11 +170,13 @@ public class FullLineageToBlender extends DynamicCommand {
 					sBuilder.setRadius(scaleFactor * (float)Math.sqrt(spot.getBoundingSphereRadiusSquared()));
 					sBuilder.setColorXRGB( colorizer.color(spot) );
 					//logService.info("adding sphere at: "+sBuilder.getTime());
-					nodeBuilder.addSpheres(sBuilder);
+					nodeBuilder[0].addSpheres(sBuilder);
 				});
-				dataSender.onNext( nodeBuilder.build() );
+				dataSender.onNext( nodeBuilder[0].build() );
 			});
 			dataSender.onCompleted();
+
+			pluginAppModel.getAppModel().getModel().getGraph().releaseRef( motherSpotRef );
 
 			conn.closeConnection();
 		}
