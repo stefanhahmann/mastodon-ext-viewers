@@ -86,12 +86,15 @@ public class FullLineageToBlender extends DynamicCommand {
 	private float scaleFactor = 0.4f;
 
 	//TODO: make a drop-down choice box: full data as one node, tree as one node, track as one node
-	@Parameter(label = "ala Matthias:")
-	private boolean doIndividualTracks = false;
+	private static final String GRP_LEVEL_FULL = "The whole lineage as one Blender node";
+	private static final String GRP_LEVEL_TREE = "One lineage tree as one Blender node";
+	private static final String GRP_LEVEL_TRACK = "One track as one Blender node";
+	@Parameter(label = "Grouping level:", choices = { GRP_LEVEL_FULL, GRP_LEVEL_TREE, GRP_LEVEL_TRACK })
+	private String chunkingLevel = GRP_LEVEL_TRACK;
 
-	@Parameter(label = "draw tracks:")
+	@Parameter(label = "Draw also tracks (as line segments):")
 	private boolean doLines = false;
-	@Parameter(label = "Lines width:")
+	@Parameter(label = "Line segments width:")
 	private float lineWidth = 0.4f;
 
 	@Parameter
@@ -133,15 +136,24 @@ public class FullLineageToBlender extends DynamicCommand {
 			final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 					logService.subLogger("export of " + dataName));
 
+			//NB: this is a hack to be able to share the nodeBuilder among lambdas
 			final BucketsWithGraphics.BatchOfGraphics.Builder[] nodeBuilder = { null };
 			final Spot motherSpotRef = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+			final boolean dontEverChangeBuilderNode = chunkingLevel.equals(GRP_LEVEL_FULL);
+			final boolean doIndividualTracks = chunkingLevel.equals(GRP_LEVEL_TRACK);
+			logService.info("Uploading plan: dontEverChangeBuilderNode = " + dontEverChangeBuilderNode
+					+ ", doIndividualTracks = " + doIndividualTracks);
 
 			visitor.visitRootsFromEntireGraph( root -> {
-				nodeBuilder[0] = BucketsWithGraphics.BatchOfGraphics.newBuilder()
-						.setClientID(conn.clientIdObj)
-						.setCollectionName(dataName)
-						.setDataName(root.getLabel())
-						.setDataID(root.getInternalPoolIndex());
+				//shall we init? if not, can we still re-init?
+				if (nodeBuilder[0] == null || !dontEverChangeBuilderNode) {
+					//System.out.println("changing node at root level");
+					nodeBuilder[0] = BucketsWithGraphics.BatchOfGraphics.newBuilder()
+							.setClientID(conn.clientIdObj)
+							.setCollectionName(dataName)
+							.setDataName( dontEverChangeBuilderNode ? "Full lineage" : root.getLabel() )
+							.setDataID(root.getInternalPoolIndex());
+				}
 
 				visitor.visitDownstreamSpots(root, spot -> {
 					//am I the very first spot of a new track? (and should we care?)
@@ -164,7 +176,6 @@ public class FullLineageToBlender extends DynamicCommand {
 						lBuilder.setTime(spot.getTimepoint());
 						lBuilder.setRadius(lineWidth);
 						lBuilder.setColorXRGB( colorizer.color(spot) );
-						//logService.info("adding sphere at: "+sBuilder.getTime());
 						nodeBuilder[0].addLines(lBuilder);
 					}
 					if (doIndividualTracks) {
@@ -172,7 +183,8 @@ public class FullLineageToBlender extends DynamicCommand {
 							&& visitor.countDescendants(motherSpotRef) > 1)
 						{
 							//beginning of a new track, yay!
-							System.out.println("Found new beginning: "+spot.getLabel());
+							logService.info("Found new beginning: "+spot.getLabel());
+							//System.out.println("changing node at track level");
 							//finish the current bucket...
 							dataSender.onNext( nodeBuilder[0].build() );
 
