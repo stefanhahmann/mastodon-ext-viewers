@@ -49,7 +49,6 @@ import org.scijava.plugin.Plugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 @Plugin( type = Command.class, name = "Display lineage in SimViewer" )
@@ -90,6 +89,11 @@ public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(label = "ala Matthias:")
 	private boolean doIndividualTracks = false;
 
+	@Parameter(label = "draw tracks:")
+	private boolean doLines = false;
+	@Parameter(label = "Lines width:")
+	private float lineWidth = 0.4f;
+
 	@Parameter
 	private LogService logService;
 
@@ -109,6 +113,8 @@ public class FullLineageToBlender extends DynamicCommand {
 					= BucketsWithGraphics.Vector3D.newBuilder();
 			final BucketsWithGraphics.SphereParameters.Builder sBuilder
 					= BucketsWithGraphics.SphereParameters.newBuilder();
+			final BucketsWithGraphics.LineParameters.Builder lBuilder
+					= BucketsWithGraphics.LineParameters.newBuilder();
 
 			//<colors>
 			Optional<TagSetStructure.TagSet> ts = pluginAppModel.getAppModel().getModel()
@@ -142,8 +148,26 @@ public class FullLineageToBlender extends DynamicCommand {
 					//which breaks into:
 					//  - advance one up unless there's a mother
 					//  - if we haven't advanced, we're beginning of some track
-					if (doIndividualTracks) {
+					if (doLines || doIndividualTracks) {
 						visitor.findUpstreamSpot(spot, motherSpotRef, 1);
+					}
+					if (doLines && motherSpotRef.getInternalPoolIndex() != spot.getInternalPoolIndex()) {
+						//build a line
+						lBuilder.setStartPos( vBuilder
+								.setX(spot.getFloatPosition(0))
+								.setY(spot.getFloatPosition(1))
+								.setZ(spot.getFloatPosition(2)) );
+						lBuilder.setEndPos( vBuilder
+								.setX(motherSpotRef.getFloatPosition(0))
+								.setY(motherSpotRef.getFloatPosition(1))
+								.setZ(motherSpotRef.getFloatPosition(2)) );
+						lBuilder.setTime(spot.getTimepoint());
+						lBuilder.setRadius(lineWidth);
+						lBuilder.setColorXRGB( colorizer.color(spot) );
+						//logService.info("adding sphere at: "+sBuilder.getTime());
+						nodeBuilder[0].addLines(lBuilder);
+					}
+					if (doIndividualTracks) {
 						if (motherSpotRef.getInternalPoolIndex() != spot.getInternalPoolIndex()
 							&& visitor.countDescendants(motherSpotRef) > 1)
 						{
