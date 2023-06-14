@@ -27,11 +27,6 @@
  */
 package cz.it4i.ulman.transfers.embeddings;
 
-import cz.it4i.ulman.transfers.BlenderSendingUtils;
-import cz.it4i.ulman.transfers.graphics.EmptyIgnoringStreamObservers;
-import cz.it4i.ulman.transfers.graphics.protocol.BucketsWithGraphics;
-import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
 import org.joml.Vector3d;
 import org.mastodon.collection.ref.RefArrayList;
 import org.mastodon.mamut.model.Link;
@@ -57,7 +52,7 @@ import java.util.Optional;
 import static cz.it4i.ulman.transfers.graphexport.Utils.createVector3d;
 
 @Plugin(type = Command.class, name = "Flat View Parameters")
-public class FlatView extends DynamicCommand {
+public class FlatDivisionAnalysis extends DynamicCommand {
 	@Parameter(label = "Label of north-pole spot:")
 	public String spotNorthPoleName;
 
@@ -103,9 +98,6 @@ public class FlatView extends DynamicCommand {
 
 		this.getInfo().getMutableInput("colorScheme",String.class).setChoices( choices );
 	}
-
-	@Parameter(label = "Show also debug-orientation vectors:")
-	public boolean showDebug = false;
 
 	@Parameter
 	private LogService logService;
@@ -172,143 +164,27 @@ public class FlatView extends DynamicCommand {
 		//</colors>
 
 		//sweeping
-		final Vector3d runner = new Vector3d();
-		final Vector3d runnerProjectedToLateralPlane = new Vector3d();
 		final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 				logService.subLogger("flat export"));
 
-		try {
-			final BlenderSendingUtils.BlenderConnectionHandle conn
-					= BlenderSendingUtils.connectToBlender(connectURL, clientName);
-			conn.sendInitialIntroHandshake();
+		org.mastodon.collection.RefList<Spot> mothers = new RefArrayList<>(vertices.getRefPool());
 
-			//now keep pushing data away to the channel
-			final StreamObserver<BucketsWithGraphics.BatchOfGraphics> dataSender
-					= conn.commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
-
-			final BucketsWithGraphics.Vector3D.Builder vBuilder
-					= BucketsWithGraphics.Vector3D.newBuilder();
-			final BucketsWithGraphics.SphereParameters.Builder sBuilder
-					= BucketsWithGraphics.SphereParameters.newBuilder();
-			final BucketsWithGraphics.LineParameters.Builder lBuilder
-					= BucketsWithGraphics.LineParameters.newBuilder();
-			final BucketsWithGraphics.VectorParameters.Builder aBuilder // a = arrow
-					= BucketsWithGraphics.VectorParameters.newBuilder();
-
-			//send debug data
-			if (showDebug) {
-				final BucketsWithGraphics.BatchOfGraphics.Builder debugNodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
-						.setClientID(conn.clientIdObj)
-						.setCollectionName(dataName)
-						.setDataName("orientation outline")
-						.setDataID(0);
-				final BucketsWithGraphics.VectorParameters.Builder dBuilder
-						= BucketsWithGraphics.VectorParameters.newBuilder();
-				dBuilder.setStartPos(vBuilder.setX((float) centre.x).setY((float) centre.y).setZ((float) centre.z));
-				dBuilder.setEndPos(vBuilder.setX((float) posN.x).setY((float) posN.y).setZ((float) posN.z));
-				dBuilder.setTime(debugTime);
-				dBuilder.setRadius(10f);
-				dBuilder.setColorXRGB(0xFF0000);
-				debugNodeBuilder.addVectors(dBuilder);
-				//
-				//"front" axis towards the view centre spot
-				dBuilder.setStartPos(vBuilder.setX((float) latCentre.x).setY((float) latCentre.y).setZ((float) latCentre.z));
-				runner.set(frontVec).mul(debugViewCentreLength).add(latCentre);
-				dBuilder.setEndPos(vBuilder.setX((float) runner.x).setY((float) runner.y).setZ((float) runner.z));
-				dBuilder.setColorXRGB(0x00FF00);
-				debugNodeBuilder.addVectors(dBuilder);
-				//
-				//"side" aux vector (again, exists here to help with deciding the full azimuth)
-				dBuilder.setStartPos(vBuilder.setX((float) centre.x).setY((float) centre.y).setZ((float) centre.z));
-				runner.set(sideVec).mul(0.3f * debugViewCentreLength).add(centre);
-				dBuilder.setEndPos(vBuilder.setX((float) runner.x).setY((float) runner.y).setZ((float) runner.z));
-				dBuilder.setColorXRGB(0x0000FF);
-				debugNodeBuilder.addVectors(dBuilder);
-				dataSender.onNext(debugNodeBuilder.build());
-			}
-			//end of: send debug data
-
-			Spot trackEnds = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
-			Spot trackStarts = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
-			double[] xyS = { 0.f, 0.f };
-			double[] xyE = { 0.f, 0.f };
-			double[] xyD0 = { 0.f, 0.f };
-			double[] xyD1 = { 0.f, 0.f };
-			org.mastodon.collection.RefList<Spot> daughterList = new RefArrayList<>(vertices.getRefPool());
-
-			visitor.visitRootsFromEntireGraph( root -> {
-				final BucketsWithGraphics.BatchOfGraphics.Builder nodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
-						.setClientID(conn.clientIdObj)
-						.setCollectionName(dataName)
-						.setDataName(root.getLabel())
-						.setDataID(root.getInternalPoolIndex());
-
-				visitor.visitDownstreamSpots(root, spot -> {
-					runner.set(spot.getFloatPosition(0),spot.getFloatPosition(1),spot.getFloatPosition(2));
-					runnerProjectedToLateralPlane.set(runner); //a copy
-
-					runner.sub(centre).normalize();
-					double elevAngle = Math.acos( runner.dot(upVec) );
-
-					runnerProjectedToLateralPlane.sub(latCentre);
-					runner.set(upVec);
-					runner.mul( -1.0 * upVec.dot(runnerProjectedToLateralPlane) );
-					runnerProjectedToLateralPlane.add( runner );
-
-					double azimuthAng = Math.acos( runnerProjectedToLateralPlane.normalize().dot(frontVec) );
-					azimuthAng *= runnerProjectedToLateralPlane.dot(sideVec) < 0 ? +1 : -1;
-
-					sBuilder.setCentre( vBuilder
-							//updates the builder content and builds inside setCentre()
-							.setX( azimuthSpacing*(float)azimuthAng )
-							.setY( elevSpacing*(float)elevAngle )
-							.setZ( 0 ) );
-					sBuilder.setTime(spot.getTimepoint());
-					sBuilder.setRadius(spheresRadius);
-					sBuilder.setColorXRGB( colorizer.color(spot) );
-					//logService.info("adding sphere at: "+sBuilder.getTime());
-					nodeBuilder.addSpheres(sBuilder);
-
-					if (visitor.countDescendants(spot) == 2) {
-						trackStarts.refTo(spot);
-						visitor.findUpstreamSpot(trackStarts,trackEnds,999);
-
-						get2DPos(trackStarts, xyS);
-						get2DPos(trackEnds, xyE);
-						lBuilder.setStartPos( vBuilder.setX( (float)xyS[0] ).setY( (float)xyS[1] ).setZ(0.f) );
-						lBuilder.setEndPos( vBuilder.setX( (float)xyE[0] ).setY( (float)xyE[1] ).setZ(0.f) );
-						lBuilder.setTime(spot.getTimepoint()+1);
-						lBuilder.setRadius(3.f);
-						lBuilder.setColorXRGB( colorizer.color(spot) );
-						nodeBuilder.addLines( lBuilder );
-
-						visitor.enlistDescendants(spot, daughterList);
-						if (daughterList.size() == 2) {
-							get2DPos(daughterList.get(0), xyD0);
-							get2DPos(daughterList.get(1), xyD1);
-							lBuilder.setStartPos( vBuilder.setX( (float)xyD0[0] ).setY( (float)xyD0[1] ).setZ(0.f) );
-							lBuilder.setEndPos( vBuilder.setX( (float)xyD1[0] ).setY( (float)xyD1[1] ).setZ(0.f) );
-							lBuilder.setTime(spot.getTimepoint()+1);
-							lBuilder.setRadius(3.f);
-							lBuilder.setColorXRGB( colorizer.color(spot) );
-							nodeBuilder.addLines( lBuilder );
-						}
-					}
-				});
-				dataSender.onNext( nodeBuilder.build() );
+		visitor.visitRootsFromEntireGraph( root -> {
+			visitor.visitDownstreamSpots(root, spot -> {
+				if (visitor.countDescendants(spot) == 2) mothers.add(spot);
 			});
-			dataSender.onCompleted();
+		});
 
-			pluginAppModel.getAppModel().getModel().getGraph().releaseRef(trackStarts);
-			pluginAppModel.getAppModel().getModel().getGraph().releaseRef(trackEnds);
-
-			conn.closeConnection();
-		}
-		catch (StatusRuntimeException e) {
-			logService.error("Mastodon network sender: GRPC: " + e.getMessage());
-		} catch (Exception e) {
-			logService.error("Mastodon network sender: Error: " + e.getMessage());
-			e.printStackTrace();
+		double[] xy = { 0.f, 0.f };
+		Spot trackStarts = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+		for (Spot m : mothers) {
+			get2DPos(m, xy);
+			visitor.findUpstreamSpot(m,trackStarts,999);
+			System.out.println("Mother "+m.getLabel()
+				+" at TP="+m.getTimepoint()+" @ xy="+xy[0]
+				+","+xy[1]+":");
+			System.out.println("  started with "+trackStarts.getLabel()
+				+" at TP="+trackStarts.getTimepoint());
 		}
 	}
 

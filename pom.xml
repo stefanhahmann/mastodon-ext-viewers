@@ -10,7 +10,7 @@
 
 	<groupId>cz.it4i.ulman.transfers</groupId>
 	<artifactId>mastodon-ext-viewers</artifactId>
-	<version>0.9.9-SNAPSHOT</version>
+	<version>0.9.9-FLAT-SNAPSHOT</version>
 
 	<organization>
 		<name>IT4Innovations</name>
@@ -154,13 +154,13 @@
 		<license.projectName>Online Mastodon Exports</license.projectName>
 		<package-name>cz.it4i.ulman.transfers</package-name>
 
-		<mastodon.version>1.0.0-beta-26-SNAPSHOT</mastodon.version>
+		<mastodon.version>1.0.0-beta-27-SNAPSHOT</mastodon.version>
 	</properties>
 
 	<repositories>
 		<repository>
 			<id>scijava.public</id>
-			<url>http://maven.scijava.org/content/groups/public</url>
+			<url>https://maven.scijava.org/content/groups/public</url>
 		</repository>
 		<repository>
 			<id>it4i</id>
@@ -175,11 +175,16 @@
 			<version>${mastodon.version}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej</artifactId>
+		</dependency>
+
 		<!-- to reach SpotsIterator class -->
 		<dependency>
 			<groupId>org.mastodon</groupId>
 			<artifactId>mastodon-tomancak</artifactId>
-			<version>0.3.1-SNAPSHOT</version>
+			<version>0.3.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.joml</groupId>

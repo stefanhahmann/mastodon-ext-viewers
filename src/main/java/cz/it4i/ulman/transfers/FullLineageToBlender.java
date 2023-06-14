@@ -49,10 +49,9 @@ import org.scijava.plugin.Plugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
-@Plugin( type = Command.class, name = "Display lineage in SimViewer" )
+@Plugin( type = Command.class, name = "Display full time-lapse of the lineage in Blender" )
 public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(persist = false)
 	private MamutPluginAppModel pluginAppModel;
@@ -86,6 +85,18 @@ public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(label = "Spheres scale:")
 	private float scaleFactor = 0.4f;
 
+	//TODO: make a drop-down choice box: full data as one node, tree as one node, track as one node
+	private static final String GRP_LEVEL_FULL = "The whole lineage as one Blender node";
+	private static final String GRP_LEVEL_TREE = "One lineage tree as one Blender node";
+	private static final String GRP_LEVEL_TRACK = "One track as one Blender node";
+	@Parameter(label = "Grouping level:", choices = { GRP_LEVEL_FULL, GRP_LEVEL_TREE, GRP_LEVEL_TRACK })
+	private String chunkingLevel = GRP_LEVEL_TRACK;
+
+	@Parameter(label = "Draw also tracks (as line segments):")
+	private boolean doLines = false;
+	@Parameter(label = "Line segments width:")
+	private float lineWidth = 0.4f;
+
 	@Parameter
 	private LogService logService;
 
@@ -105,6 +116,8 @@ public class FullLineageToBlender extends DynamicCommand {
 					= BucketsWithGraphics.Vector3D.newBuilder();
 			final BucketsWithGraphics.SphereParameters.Builder sBuilder
 					= BucketsWithGraphics.SphereParameters.newBuilder();
+			final BucketsWithGraphics.LineParameters.Builder lBuilder
+					= BucketsWithGraphics.LineParameters.newBuilder();
 
 			//<colors>
 			Optional<TagSetStructure.TagSet> ts = pluginAppModel.getAppModel().getModel()
@@ -123,14 +136,67 @@ public class FullLineageToBlender extends DynamicCommand {
 			final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
 					logService.subLogger("export of " + dataName));
 
+			//NB: this is a hack to be able to share the nodeBuilder among lambdas
+			final BucketsWithGraphics.BatchOfGraphics.Builder[] nodeBuilder = { null };
+			final Spot motherSpotRef = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+			final boolean dontEverChangeBuilderNode = chunkingLevel.equals(GRP_LEVEL_FULL);
+			final boolean doIndividualTracks = chunkingLevel.equals(GRP_LEVEL_TRACK);
+			logService.info("Uploading plan: dontEverChangeBuilderNode = " + dontEverChangeBuilderNode
+					+ ", doIndividualTracks = " + doIndividualTracks);
+
 			visitor.visitRootsFromEntireGraph( root -> {
-				final BucketsWithGraphics.BatchOfGraphics.Builder nodeBuilder = BucketsWithGraphics.BatchOfGraphics.newBuilder()
-						.setClientID(conn.clientIdObj)
-						.setCollectionName(dataName)
-						.setDataName(root.getLabel())
-						.setDataID(root.getInternalPoolIndex());
+				//shall we init? if not, can we still re-init?
+				if (nodeBuilder[0] == null || !dontEverChangeBuilderNode) {
+					//System.out.println("changing node at root level");
+					nodeBuilder[0] = BucketsWithGraphics.BatchOfGraphics.newBuilder()
+							.setClientID(conn.clientIdObj)
+							.setCollectionName(dataName)
+							.setDataName( dontEverChangeBuilderNode ? "Full lineage" : root.getLabel() )
+							.setDataID(root.getInternalPoolIndex());
+				}
 
 				visitor.visitDownstreamSpots(root, spot -> {
+					//am I the very first spot of a new track? (and should we care?)
+					//which breaks into:
+					//  - advance one up unless there's a mother
+					//  - if we haven't advanced, we're beginning of some track
+					if (doLines || doIndividualTracks) {
+						visitor.findUpstreamSpot(spot, motherSpotRef, 1);
+					}
+					if (doLines && motherSpotRef.getInternalPoolIndex() != spot.getInternalPoolIndex()) {
+						//build a line
+						lBuilder.setStartPos( vBuilder
+								.setX(spot.getFloatPosition(0))
+								.setY(spot.getFloatPosition(1))
+								.setZ(spot.getFloatPosition(2)) );
+						lBuilder.setEndPos( vBuilder
+								.setX(motherSpotRef.getFloatPosition(0))
+								.setY(motherSpotRef.getFloatPosition(1))
+								.setZ(motherSpotRef.getFloatPosition(2)) );
+						lBuilder.setTime(spot.getTimepoint());
+						lBuilder.setRadius(lineWidth);
+						lBuilder.setColorXRGB( colorizer.color(spot) );
+						nodeBuilder[0].addLines(lBuilder);
+					}
+					if (doIndividualTracks) {
+						if (motherSpotRef.getInternalPoolIndex() != spot.getInternalPoolIndex()
+							&& visitor.countDescendants(motherSpotRef) > 1)
+						{
+							//beginning of a new track, yay!
+							logService.info("Found new beginning: "+spot.getLabel());
+							//System.out.println("changing node at track level");
+							//finish the current bucket...
+							dataSender.onNext( nodeBuilder[0].build() );
+
+							//...and start a new one
+							nodeBuilder[0] = BucketsWithGraphics.BatchOfGraphics.newBuilder()
+									.setClientID(conn.clientIdObj)
+									.setCollectionName(dataName)
+									.setDataName(spot.getLabel())
+									.setDataID(spot.getInternalPoolIndex());
+						}
+					}
+
 					sBuilder.setCentre( vBuilder
 							//updates the builder content and builds inside setCentre()
 							.setX(spot.getFloatPosition(0))
@@ -140,11 +206,13 @@ public class FullLineageToBlender extends DynamicCommand {
 					sBuilder.setRadius(scaleFactor * (float)Math.sqrt(spot.getBoundingSphereRadiusSquared()));
 					sBuilder.setColorXRGB( colorizer.color(spot) );
 					//logService.info("adding sphere at: "+sBuilder.getTime());
-					nodeBuilder.addSpheres(sBuilder);
+					nodeBuilder[0].addSpheres(sBuilder);
 				});
-				dataSender.onNext( nodeBuilder.build() );
+				dataSender.onNext( nodeBuilder[0].build() );
 			});
 			dataSender.onCompleted();
+
+			pluginAppModel.getAppModel().getModel().getGraph().releaseRef( motherSpotRef );
 
 			conn.closeConnection();
 		}
