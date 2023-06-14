@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Optional;
 
 
-@Plugin( type = Command.class, name = "Display lineage in SimViewer" )
+@Plugin( type = Command.class, name = "Display full time-lapse of the lineage in Blender" )
 public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(persist = false)
 	private MamutPluginAppModel pluginAppModel;
