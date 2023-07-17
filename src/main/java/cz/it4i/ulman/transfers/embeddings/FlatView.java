@@ -109,6 +109,8 @@ public class FlatView extends DynamicCommand {
 
 	@Parameter(label = "Division-orientation analysis, show mother tracks orientations:")
 	public boolean showDO_motherTrackLines = false;
+	@Parameter(label = "Division-orientation analysis, up to points back to set mother orientations:")
+	public int showDO_motherTrackHistoryTPs = 999;
 	@Parameter(label = "Division-orientation analysis, show daughters connection lines:")
 	public boolean showDO_daughtersLines = false;
 	@Parameter(label = "Division-orientation analysis, hide spots to see lines better:")
@@ -267,7 +269,7 @@ public class FlatView extends DynamicCommand {
 						//reached a division point
 						if (showDO_motherTrackLines) {
 							trackEnds.refTo(spot);
-							visitor.findUpstreamSpot(trackEnds,trackStarts,999);
+							visitor.findUpstreamSpot(trackEnds,trackStarts,showDO_motherTrackHistoryTPs);
 
 							get2DPos(trackStarts, xyS);
 							get2DPos(trackEnds, xyE);
