@@ -25,7 +25,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package cz.it4i.ulman.transfers.embeddings;
+package cz.it4i.ulman.transfers.embeddings.experimental;
 
 import org.joml.Vector3d;
 import org.mastodon.collection.ref.RefArrayList;
