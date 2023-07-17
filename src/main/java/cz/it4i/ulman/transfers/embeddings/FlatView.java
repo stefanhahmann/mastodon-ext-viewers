@@ -244,25 +244,10 @@ public class FlatView extends DynamicCommand {
 						.setDataID(root.getInternalPoolIndex());
 
 				visitor.visitDownstreamSpots(root, spot -> {
-					runner.set(spot.getFloatPosition(0),spot.getFloatPosition(1),spot.getFloatPosition(2));
-					runnerProjectedToLateralPlane.set(runner); //a copy
+					get2DPos(spot, xyS);
 
-					runner.sub(centre).normalize();
-					double elevAngle = Math.acos( runner.dot(upVec) );
-
-					runnerProjectedToLateralPlane.sub(latCentre);
-					runner.set(upVec);
-					runner.mul( -1.0 * upVec.dot(runnerProjectedToLateralPlane) );
-					runnerProjectedToLateralPlane.add( runner );
-
-					double azimuthAng = Math.acos( runnerProjectedToLateralPlane.normalize().dot(frontVec) );
-					azimuthAng *= runnerProjectedToLateralPlane.dot(sideVec) < 0 ? +1 : -1;
-
-					sBuilder.setCentre( vBuilder
-							//updates the builder content and builds inside setCentre()
-							.setX( azimuthSpacing*(float)azimuthAng )
-							.setY( elevSpacing*(float)elevAngle )
-							.setZ( 0 ) );
+					//updates the builder content and builds inside setCentre()
+					sBuilder.setCentre( vBuilder.setX( (float)xyS[0] ).setY( (float)xyS[1] ).setZ(0.f) );
 					sBuilder.setTime(spot.getTimepoint());
 					sBuilder.setRadius(spheresRadius);
 					sBuilder.setColorXRGB( colorizer.color(spot) );
