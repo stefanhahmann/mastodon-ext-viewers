@@ -107,6 +107,15 @@ public class FlatView extends DynamicCommand {
 	@Parameter(label = "Show also debug-orientation vectors:")
 	public boolean showDebug = false;
 
+	@Parameter(label = "Division-orientation analysis, show mother tracks orientations:")
+	public boolean showDO_motherTrackLines = false;
+	@Parameter(label = "Division-orientation analysis, up to points back to set mother orientations:")
+	public int showDO_motherTrackHistoryTPs = 999;
+	@Parameter(label = "Division-orientation analysis, show daughters connection lines:")
+	public boolean showDO_daughtersLines = false;
+	@Parameter(label = "Division-orientation analysis, hide spots to see lines better:")
+	public boolean showDO_hideSpotsForTheSakeOfLines = false;
+
 	@Parameter
 	private LogService logService;
 
@@ -244,54 +253,47 @@ public class FlatView extends DynamicCommand {
 						.setDataID(root.getInternalPoolIndex());
 
 				visitor.visitDownstreamSpots(root, spot -> {
-					runner.set(spot.getFloatPosition(0),spot.getFloatPosition(1),spot.getFloatPosition(2));
-					runnerProjectedToLateralPlane.set(runner); //a copy
+					if (!showDO_hideSpotsForTheSakeOfLines) {
+						get2DPos(spot, xyS);
 
-					runner.sub(centre).normalize();
-					double elevAngle = Math.acos( runner.dot(upVec) );
-
-					runnerProjectedToLateralPlane.sub(latCentre);
-					runner.set(upVec);
-					runner.mul( -1.0 * upVec.dot(runnerProjectedToLateralPlane) );
-					runnerProjectedToLateralPlane.add( runner );
-
-					double azimuthAng = Math.acos( runnerProjectedToLateralPlane.normalize().dot(frontVec) );
-					azimuthAng *= runnerProjectedToLateralPlane.dot(sideVec) < 0 ? +1 : -1;
-
-					sBuilder.setCentre( vBuilder
-							//updates the builder content and builds inside setCentre()
-							.setX( azimuthSpacing*(float)azimuthAng )
-							.setY( elevSpacing*(float)elevAngle )
-							.setZ( 0 ) );
-					sBuilder.setTime(spot.getTimepoint());
-					sBuilder.setRadius(spheresRadius);
-					sBuilder.setColorXRGB( colorizer.color(spot) );
-					//logService.info("adding sphere at: "+sBuilder.getTime());
-					nodeBuilder.addSpheres(sBuilder);
+						//updates the builder content and builds inside setCentre()
+						sBuilder.setCentre(vBuilder.setX((float) xyS[0]).setY((float) xyS[1]).setZ(0.f));
+						sBuilder.setTime(spot.getTimepoint());
+						sBuilder.setRadius(spheresRadius);
+						sBuilder.setColorXRGB(colorizer.color(spot));
+						//logService.info("adding sphere at: "+sBuilder.getTime());
+						nodeBuilder.addSpheres(sBuilder);
+					}
 
 					if (visitor.countDescendants(spot) == 2) {
-						trackStarts.refTo(spot);
-						visitor.findUpstreamSpot(trackStarts,trackEnds,999);
+						//reached a division point
+						if (showDO_motherTrackLines) {
+							trackEnds.refTo(spot);
+							visitor.findUpstreamSpot(trackEnds,trackStarts,showDO_motherTrackHistoryTPs);
 
-						get2DPos(trackStarts, xyS);
-						get2DPos(trackEnds, xyE);
-						lBuilder.setStartPos( vBuilder.setX( (float)xyS[0] ).setY( (float)xyS[1] ).setZ(0.f) );
-						lBuilder.setEndPos( vBuilder.setX( (float)xyE[0] ).setY( (float)xyE[1] ).setZ(0.f) );
-						lBuilder.setTime(spot.getTimepoint()+1);
-						lBuilder.setRadius(3.f);
-						lBuilder.setColorXRGB( colorizer.color(spot) );
-						nodeBuilder.addLines( lBuilder );
+							get2DPos(trackStarts, xyS);
+							get2DPos(trackEnds, xyE);
+							aBuilder.setStartPos( vBuilder.setX( (float)xyS[0] ).setY( (float)xyS[1] ).setZ(0.f) );
+							aBuilder.setEndPos( vBuilder.setX( (float)xyE[0] ).setY( (float)xyE[1] ).setZ(0.f) );
+							aBuilder.setTime(spot.getTimepoint()+1);
+							aBuilder.setRadius(4.f);
+							aBuilder.setColorXRGB( colorizer.color(spot) );
+							nodeBuilder.addVectors( aBuilder );
+						}
 
-						visitor.enlistDescendants(spot, daughterList);
-						if (daughterList.size() == 2) {
-							get2DPos(daughterList.get(0), xyD0);
-							get2DPos(daughterList.get(1), xyD1);
-							lBuilder.setStartPos( vBuilder.setX( (float)xyD0[0] ).setY( (float)xyD0[1] ).setZ(0.f) );
-							lBuilder.setEndPos( vBuilder.setX( (float)xyD1[0] ).setY( (float)xyD1[1] ).setZ(0.f) );
-							lBuilder.setTime(spot.getTimepoint()+1);
-							lBuilder.setRadius(3.f);
-							lBuilder.setColorXRGB( colorizer.color(spot) );
-							nodeBuilder.addLines( lBuilder );
+						if (showDO_daughtersLines) {
+							daughterList.clear();
+							visitor.enlistDescendants(spot, daughterList);
+							if (daughterList.size() == 2) { //should always be true...
+								get2DPos(daughterList.get(0), xyD0);
+								get2DPos(daughterList.get(1), xyD1);
+								lBuilder.setStartPos(vBuilder.setX((float) xyD0[0]).setY((float) xyD0[1]).setZ(0.f));
+								lBuilder.setEndPos(vBuilder.setX((float) xyD1[0]).setY((float) xyD1[1]).setZ(0.f));
+								lBuilder.setTime(spot.getTimepoint() + 1);
+								lBuilder.setRadius(2.f);
+								lBuilder.setColorXRGB(colorizer.color(spot));
+								nodeBuilder.addLines(lBuilder);
+							}
 						}
 					}
 				});
