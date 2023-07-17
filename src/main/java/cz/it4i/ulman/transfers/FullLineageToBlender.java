@@ -47,8 +47,11 @@ import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 
 @Plugin( type = Command.class, name = "Display full time-lapse of the lineage in Blender" )
@@ -97,6 +100,9 @@ public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(label = "Line segments width:")
 	private float lineWidth = 0.4f;
 
+	@Parameter(label = "Displace lineages eccentrically by this amount:")
+	private float eccentricOffsetSize = 0.f;
+
 	@Parameter
 	private LogService logService;
 
@@ -144,6 +150,36 @@ public class FullLineageToBlender extends DynamicCommand {
 			logService.info("Uploading plan: dontEverChangeBuilderNode = " + dontEverChangeBuilderNode
 					+ ", doIndividualTracks = " + doIndividualTracks);
 
+			//<eccentricity>
+			final int minTP = pluginAppModel.getAppModel().getMinTimepoint();
+			//tp -> geom. centre over all spots in that tp
+			final Map<Integer, float[]> globalCentre = new HashMap<>(pluginAppModel.getAppModel().getMaxTimepoint()-minTP+1);
+			final float[] currPos = new float[3]; //aux variable
+			if (eccentricOffsetSize > 0) {
+				//determine cell centres for each time point
+				for (int tp = minTP; tp <= pluginAppModel.getAppModel().getMaxTimepoint(); ++tp) {
+					globalCentre.put(tp, new float[] {0,0,0});
+					float[] cs = globalCentre.get(tp);
+					long cnt = 0;
+					for (Spot s : pluginAppModel.getAppModel().getModel().getSpatioTemporalIndex().getSpatialIndex(tp)) {
+						s.localize(currPos);
+						cs[0] += currPos[0];
+						cs[1] += currPos[1];
+						cs[2] += currPos[2];
+						++cnt;
+					}
+					if (cnt > 0) {
+						cs[0] /= cnt;
+						cs[1] /= cnt;
+						cs[2] /= cnt;
+					}
+				}
+			}
+
+			final float[] defaultZeroPos = new float[] {0,0,0};
+			final Function<Integer,float[]> commonZeroPosInitializer = (key) -> new float[]{0,0,0, 0}; //x,y,z, cnt
+			//</eccentricity>
+
 			visitor.visitRootsFromEntireGraph( root -> {
 				//shall we init? if not, can we still re-init?
 				if (nodeBuilder[0] == null || !dontEverChangeBuilderNode) {
@@ -154,6 +190,42 @@ public class FullLineageToBlender extends DynamicCommand {
 							.setDataName( dontEverChangeBuilderNode ? "Full lineage" : root.getLabel() )
 							.setDataID(root.getInternalPoolIndex());
 				}
+
+				//<eccentricity>
+				final Map<Integer, float[]> lineageOffset = new HashMap<>(pluginAppModel.getAppModel().getMaxTimepoint()-minTP+1);
+				if (eccentricOffsetSize > 0) {
+					//before the "normal scanning and drawing of this lineage",
+					//first determine this lineage centres for every time point
+					visitor.visitDownstreamSpots(root, spot -> {
+						float[] cs = lineageOffset.computeIfAbsent(spot.getTimepoint(), commonZeroPosInitializer);
+						spot.localize(currPos);
+						cs[0] += currPos[0];
+						cs[1] += currPos[1];
+						cs[2] += currPos[2];
+						cs[3] += 1;
+					});
+
+					//finish the centre calculation, convert the map to a "shifts provider"
+					lineageOffset.forEach((k,pos) -> {
+						//finish the calculation of the avg. coord (aka centre)
+						pos[0] /= pos[3];
+						pos[1] /= pos[3];
+						pos[2] /= pos[3];
+
+						//turn it into an "eccentric shift vector"
+						float[] c = globalCentre.getOrDefault(k, defaultZeroPos); //"default param" should never happen! ...just in case
+						pos[0] -= c[0];
+						pos[1] -= c[1];
+						pos[2] -= c[2];
+
+						//resize it as desired
+						final float scale = eccentricOffsetSize / (float)Math.sqrt(pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2]);
+						pos[0] *= scale;
+						pos[1] *= scale;
+						pos[2] *= scale;
+					});
+				}
+				//</eccentricity>
 
 				visitor.visitDownstreamSpots(root, spot -> {
 					//am I the very first spot of a new track? (and should we care?)
@@ -197,11 +269,14 @@ public class FullLineageToBlender extends DynamicCommand {
 						}
 					}
 
+					spot.localize(currPos);
+					float[] offset = lineageOffset.getOrDefault(spot.getTimepoint(), defaultZeroPos);
+					currPos[0] += offset[0];
+					currPos[1] += offset[1];
+					currPos[2] += offset[2];
 					sBuilder.setCentre( vBuilder
 							//updates the builder content and builds inside setCentre()
-							.setX(spot.getFloatPosition(0))
-							.setY(spot.getFloatPosition(1))
-							.setZ(spot.getFloatPosition(2)) );
+							.setX(currPos[0]).setY(currPos[1]).setZ(currPos[2]) );
 					sBuilder.setTime(spot.getTimepoint());
 					sBuilder.setRadius(scaleFactor * (float)Math.sqrt(spot.getBoundingSphereRadiusSquared()));
 					sBuilder.setColorXRGB( colorizer.color(spot) );
