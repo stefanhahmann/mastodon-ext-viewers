@@ -111,6 +111,8 @@ public class FlatView extends DynamicCommand {
 	public boolean showDO_motherTrackLines = false;
 	@Parameter(label = "Division-orientation analysis, show daughters connection lines:")
 	public boolean showDO_daughtersLines = false;
+	@Parameter(label = "Division-orientation analysis, hide spots to see lines better:")
+	public boolean showDO_hideSpotsForTheSakeOfLines = false;
 
 	@Parameter
 	private LogService logService;
@@ -249,15 +251,17 @@ public class FlatView extends DynamicCommand {
 						.setDataID(root.getInternalPoolIndex());
 
 				visitor.visitDownstreamSpots(root, spot -> {
-					get2DPos(spot, xyS);
+					if (!showDO_hideSpotsForTheSakeOfLines) {
+						get2DPos(spot, xyS);
 
-					//updates the builder content and builds inside setCentre()
-					sBuilder.setCentre( vBuilder.setX( (float)xyS[0] ).setY( (float)xyS[1] ).setZ(0.f) );
-					sBuilder.setTime(spot.getTimepoint());
-					sBuilder.setRadius(spheresRadius);
-					sBuilder.setColorXRGB( colorizer.color(spot) );
-					//logService.info("adding sphere at: "+sBuilder.getTime());
-					nodeBuilder.addSpheres(sBuilder);
+						//updates the builder content and builds inside setCentre()
+						sBuilder.setCentre(vBuilder.setX((float) xyS[0]).setY((float) xyS[1]).setZ(0.f));
+						sBuilder.setTime(spot.getTimepoint());
+						sBuilder.setRadius(spheresRadius);
+						sBuilder.setColorXRGB(colorizer.color(spot));
+						//logService.info("adding sphere at: "+sBuilder.getTime());
+						nodeBuilder.addSpheres(sBuilder);
+					}
 
 					if (visitor.countDescendants(spot) == 2) {
 						//reached a division point
