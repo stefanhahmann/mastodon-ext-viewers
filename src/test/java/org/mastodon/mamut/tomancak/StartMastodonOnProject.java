@@ -30,9 +30,8 @@ package org.mastodon.mamut.tomancak;
 
 import net.imagej.ImageJ;
 import org.mastodon.mamut.MainWindow;
-import org.mastodon.mamut.WindowManager;
-import org.mastodon.mamut.project.MamutProjectIO;
-import org.scijava.Context;
+import org.mastodon.mamut.ProjectModel;
+import org.mastodon.mamut.io.ProjectLoader;
 import javax.swing.WindowConstants;
 
 import java.io.IOException;
@@ -55,11 +54,10 @@ public class StartMastodonOnProject {
 			ij.ui().showUI();
 
 			//the central hub, a container to hold all
-			final WindowManager windowManager = new WindowManager( ij.getContext() );
-			windowManager.getProjectManager().open( new MamutProjectIO().load( projectPath ) );
+			final ProjectModel projectModel = ProjectLoader.open( projectPath, ij.getContext() );
 
 			//a GUI element wrapping around the hub
-			final MainWindow win = new MainWindow(windowManager);
+			final MainWindow win = new MainWindow( projectModel );
 
 			//this makes the true Mastodon window visible
 			//note: you can open project that restores/reopen e.g. TrackScheme window,
