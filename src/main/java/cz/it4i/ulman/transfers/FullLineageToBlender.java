@@ -31,9 +31,9 @@ import cz.it4i.ulman.transfers.graphics.EmptyIgnoringStreamObservers;
 import cz.it4i.ulman.transfers.graphics.protocol.BucketsWithGraphics;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.tomancak.util.SpotsIterator;
 
 import org.mastodon.model.tag.TagSetStructure;
@@ -57,7 +57,7 @@ import java.util.function.Function;
 @Plugin( type = Command.class, name = "Display full time-lapse of the lineage in Blender" )
 public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(persist = false)
-	private MamutPluginAppModel pluginAppModel;
+	private ProjectModel projectModel;
 
 	@Parameter
 	private String connectURL = "localhost:9083";
@@ -76,7 +76,7 @@ public class FullLineageToBlender extends DynamicCommand {
 		List<String> choices = new ArrayList<>(50);
 		choices.add("All white");
 
-		pluginAppModel.getAppModel().getModel()
+		projectModel.getModel()
 				.getTagSetModel()
 				.getTagSetStructure()
 				.getTagSets()
@@ -126,7 +126,7 @@ public class FullLineageToBlender extends DynamicCommand {
 					= BucketsWithGraphics.LineParameters.newBuilder();
 
 			//<colors>
-			Optional<TagSetStructure.TagSet> ts = pluginAppModel.getAppModel().getModel()
+			Optional<TagSetStructure.TagSet> ts = projectModel.getModel()
 					.getTagSetModel()
 					.getTagSetStructure()
 					.getTagSets()
@@ -135,33 +135,33 @@ public class FullLineageToBlender extends DynamicCommand {
 					.findFirst();
 			final GraphColorGenerator<Spot, Link> colorizer
 					= ts.isPresent() ? new TagSetGraphColorGenerator<>(
-						pluginAppModel.getAppModel().getModel().getTagSetModel(), ts.get())
+						projectModel.getModel().getTagSetModel(), ts.get())
 					: new FixedColorGenerator(255,255,255);
 			//</colors>
 
-			final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
+			final SpotsIterator visitor = new SpotsIterator(projectModel,
 					logService.subLogger("export of " + dataName));
 
 			//NB: this is a hack to be able to share the nodeBuilder among lambdas
 			final BucketsWithGraphics.BatchOfGraphics.Builder[] nodeBuilder = { null };
-			final Spot motherSpotRef = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+			final Spot motherSpotRef = projectModel.getModel().getGraph().vertexRef();
 			final boolean dontEverChangeBuilderNode = chunkingLevel.equals(GRP_LEVEL_FULL);
 			final boolean doIndividualTracks = chunkingLevel.equals(GRP_LEVEL_TRACK);
 			logService.info("Uploading plan: dontEverChangeBuilderNode = " + dontEverChangeBuilderNode
 					+ ", doIndividualTracks = " + doIndividualTracks);
 
 			//<eccentricity>
-			final int minTP = pluginAppModel.getAppModel().getMinTimepoint();
+			final int minTP = projectModel.getMinTimepoint();
 			//tp -> geom. centre over all spots in that tp
-			final Map<Integer, float[]> globalCentre = new HashMap<>(pluginAppModel.getAppModel().getMaxTimepoint()-minTP+1);
+			final Map<Integer, float[]> globalCentre = new HashMap<>(projectModel.getMaxTimepoint()-minTP+1);
 			final float[] currPos = new float[3]; //aux variable
 			if (eccentricOffsetSize > 0) {
 				//determine cell centres for each time point
-				for (int tp = minTP; tp <= pluginAppModel.getAppModel().getMaxTimepoint(); ++tp) {
+				for (int tp = minTP; tp <= projectModel.getMaxTimepoint(); ++tp) {
 					globalCentre.put(tp, new float[] {0,0,0});
 					float[] cs = globalCentre.get(tp);
 					long cnt = 0;
-					for (Spot s : pluginAppModel.getAppModel().getModel().getSpatioTemporalIndex().getSpatialIndex(tp)) {
+					for (Spot s : projectModel.getModel().getSpatioTemporalIndex().getSpatialIndex(tp)) {
 						s.localize(currPos);
 						cs[0] += currPos[0];
 						cs[1] += currPos[1];
@@ -192,7 +192,7 @@ public class FullLineageToBlender extends DynamicCommand {
 				}
 
 				//<eccentricity>
-				final Map<Integer, float[]> lineageOffset = new HashMap<>(pluginAppModel.getAppModel().getMaxTimepoint()-minTP+1);
+				final Map<Integer, float[]> lineageOffset = new HashMap<>(projectModel.getMaxTimepoint()-minTP+1);
 				if (eccentricOffsetSize > 0) {
 					//before the "normal scanning and drawing of this lineage",
 					//first determine this lineage centres for every time point
@@ -287,7 +287,7 @@ public class FullLineageToBlender extends DynamicCommand {
 			});
 			dataSender.onCompleted();
 
-			pluginAppModel.getAppModel().getModel().getGraph().releaseRef( motherSpotRef );
+			projectModel.getModel().getGraph().releaseRef( motherSpotRef );
 
 			conn.closeConnection();
 		}

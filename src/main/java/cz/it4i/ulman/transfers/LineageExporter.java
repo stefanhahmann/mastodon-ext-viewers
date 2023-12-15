@@ -39,9 +39,9 @@ import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSort
 
 import org.mastodon.collection.RefList;
 import org.mastodon.collection.ref.RefArrayList;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.spatial.SpatioTemporalIndex;
 import org.mastodon.model.SelectionModel;
-import org.mastodon.mamut.MamutAppModel;
 import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
@@ -69,7 +69,7 @@ public class LineageExporter implements Command
 	private final String selectionInfoMsg = "...also of only selected sub-trees.";
 
 	@Parameter(persist = false)
-	private MamutAppModel appModel;
+	private ProjectModel projectModel;
 	//
 	//optional ID to distinguish among Mastodon projects
 	@Parameter(persist = false, required = false)
@@ -120,7 +120,7 @@ public class LineageExporter implements Command
 			ownLogger = logServiceRef.subLogger("Lineage exports in "+projectID);
 
 			//first: do we have some extra dialogs to take care of?
-			sorterOfDaughters = SortersChooserDlg.resolveSorterOfDaughters(sortMode,commandService,appModel,projectID);
+			sorterOfDaughters = SortersChooserDlg.resolveSorterOfDaughters(sortMode,commandService, projectModel,projectID);
 			if (sorterOfDaughters == null) {
 				logServiceRef.info("Dialog canceled or some dialog error, exporting nothing.");
 				return;
@@ -162,7 +162,7 @@ public class LineageExporter implements Command
 								((AbstractDescendantsSorter)sorterOfDaughters).exportDebugGraphics(ge);
 						}
 						//go!
-						selectionModel = appModel.getSelectionModel();
+						selectionModel = projectModel.getSelectionModel();
 						isSelectionEmpty = selectionModel.isEmpty();
 						if (isSelectionEmpty) time2Gen2GraphExportable(ge);
 						else time2Gen2GraphExportable_rootsFromSelection(ge);
@@ -183,7 +183,7 @@ public class LineageExporter implements Command
 
 	private void time2Gen2GraphExportable_rootsFromSelection(final GraphExportable ge)
 	{
-		final ModelGraph modelGraph = appModel.getModel().getGraph();
+		final ModelGraph modelGraph = projectModel.getModel().getGraph();
 		final Link lRef = modelGraph.edgeRef();              //link reference
 		final Spot sRef = modelGraph.vertices().createRef(); //aux spot reference
 
@@ -237,12 +237,12 @@ public class LineageExporter implements Command
 		//NB: this method could be in a class of its own... later...
 
 		//shortcuts to the data
-		final int timeFrom = appModel.getMinTimepoint();
-		final int timeTill = appModel.getMaxTimepoint();
-		final ModelGraph modelGraph = appModel.getModel().getGraph();
+		final int timeFrom = projectModel.getMinTimepoint();
+		final int timeTill = projectModel.getMaxTimepoint();
+		final ModelGraph modelGraph = projectModel.getModel().getGraph();
 
 		//aux Mastodon data: shortcuts and caches/proxies
-		final SpatioTemporalIndex< Spot > spots = appModel.getModel().getSpatioTemporalIndex();
+		final SpatioTemporalIndex< Spot > spots = projectModel.getModel().getSpatioTemporalIndex();
 		final Link lRef = modelGraph.edgeRef();              //link reference
 		final Spot sRef = modelGraph.vertices().createRef(); //aux spot reference
 

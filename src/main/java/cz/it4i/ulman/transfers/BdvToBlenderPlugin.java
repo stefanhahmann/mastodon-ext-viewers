@@ -28,7 +28,7 @@
 package cz.it4i.ulman.transfers;
 
 import org.mastodon.mamut.BdvToBlenderView;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
+import org.mastodon.mamut.ProjectModel;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -36,7 +36,7 @@ import org.scijava.plugin.Plugin;
 @Plugin( type = Command.class, name = "Export all spots as they are currently displayed in an opened BDV" )
 public class BdvToBlenderPlugin implements Command {
 	@Parameter(persist = false)
-	private MamutPluginAppModel pluginAppModel;
+	private ProjectModel projectModel;
 
 	@Parameter
 	private String connectURL = "localhost:9083";
@@ -49,7 +49,7 @@ public class BdvToBlenderPlugin implements Command {
 
 	@Override
 	public void run() {
-		new BdvToBlenderView(pluginAppModel)
+		new BdvToBlenderView(projectModel)
 				.setSpheresScalingFactor(objScale)
 				.openUseAutoCleanBdvToBlenderView(
 						connectURL,
