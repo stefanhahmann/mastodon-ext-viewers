@@ -35,22 +35,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
-import org.mastodon.app.ui.ViewMenuBuilder;
-import org.mastodon.mamut.plugin.MamutPlugin;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
-import org.mastodon.mamut.MamutAppModel;
-import org.mastodon.ui.keymap.CommandDescriptionProvider;
-import org.mastodon.ui.keymap.CommandDescriptions;
-import org.mastodon.ui.keymap.KeyConfigContexts;
-
 import org.scijava.AbstractContextual;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
+import org.mastodon.mamut.plugin.MamutPlugin;
+
+import org.mastodon.mamut.ProjectModel;
+import org.mastodon.mamut.KeyConfigScopes;
+import org.mastodon.ui.keymap.KeyConfigContexts;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptionProvider;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptions;
+import org.mastodon.app.ui.ViewMenuBuilder;
+
 import org.scijava.ui.behaviour.util.Actions;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 import org.scijava.ui.behaviour.util.RunnableAction;
 
-@Plugin( type = FacadeToAllPluginsInHere.class )
+@Plugin( type = MamutPlugin.class )
 public class FacadeToAllPluginsInHere extends AbstractContextual implements MamutPlugin
 {
 	private static final String SORT_DSCNDNTS = "[tomancak] sort descendants";
@@ -77,12 +78,12 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	}
 
 	/** Command descriptions for all provided commands */
-	@Plugin( type = Descriptions.class )
+	@Plugin( type = CommandDescriptionProvider.class )
 	public static class Descriptions extends CommandDescriptionProvider
 	{
 		public Descriptions()
 		{
-			super( KeyConfigContexts.TRACKSCHEME, KeyConfigContexts.BIGDATAVIEWER );
+			super( KeyConfigScopes.MAMUT, KeyConfigContexts.TRACKSCHEME, KeyConfigContexts.BIGDATAVIEWER );
 		}
 
 		@Override
@@ -93,34 +94,20 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	}
 	//------------------------------------------------------------------------
 
-	private final AbstractNamedAction actionSorting;
+	private final AbstractNamedAction actionSorting = new RunnableAction( SORT_DSCNDNTS, this::sortDescendants );
 
-	private MamutPluginAppModel pluginAppModel;
-
-	public FacadeToAllPluginsInHere()
-	{
-		actionSorting = new RunnableAction( SORT_DSCNDNTS, this::sortDescendants );
-		updateEnabledActions();
-	}
+	private ProjectModel projectModel;
 
 	@Override
-	public void setAppPluginModel( final MamutPluginAppModel model )
+	public void setAppPluginModel( final ProjectModel model )
 	{
-		this.pluginAppModel = model;
-		updateEnabledActions();
+		this.projectModel = model;
 	}
 
 	@Override
 	public void installGlobalActions( final Actions actions )
 	{
 		actions.namedAction(actionSorting, SORT_DSCNDNTS_KEYS );
-	}
-
-	/** enables/disables menu items based on the availability of some project */
-	private void updateEnabledActions()
-	{
-		final MamutAppModel appModel = ( pluginAppModel == null ) ? null : pluginAppModel.getAppModel();
-		actionSorting.setEnabled( appModel != null );
 	}
 	//------------------------------------------------------------------------
 	//------------------------------------------------------------------------
@@ -129,8 +116,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		this.getContext().getService(CommandService.class).run(
 				SortDescendants.class, true,
-				"appModel", pluginAppModel.getAppModel(),
-				"projectID", pluginAppModel.getWindowManager().getProjectManager()
-						.getProject().getProjectRoot().getName());
+				"projectModel", projectModel,
+				"projectID", projectModel.getProjectName());
 	}
 }

@@ -33,8 +33,7 @@ import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.PolesSorterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.SlicesSorterDlg;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.ui.TriangleSorterDlg;
 
-import org.mastodon.mamut.MamutAppModel;
-
+import org.mastodon.mamut.ProjectModel;
 import org.scijava.command.CommandService;
 import org.scijava.command.CommandModule;
 
@@ -58,7 +57,7 @@ public class SortersChooserDlg {
 	public static DescendantsSorter resolveSorterOfDaughters(
 			final String chosenMethod,
 			final CommandService commandService,
-			final MamutAppModel appModel,
+			final ProjectModel projectModel,
 			final String projectID)
 	throws ExecutionException, InterruptedException
 	{
@@ -74,7 +73,7 @@ public class SortersChooserDlg {
 			//explicit centre
 			final CommandModule m = commandService
 					.run(PolesSorterDlg.class, true,
-							"appModel", appModel,
+							"projectModel", projectModel,
 							"projectID", projectID,
 							"useImplicitCentre", false)
 					.get();
@@ -84,7 +83,7 @@ public class SortersChooserDlg {
 			//implicit centre
 			final CommandModule m = commandService
 					.run(PolesSorterDlg.class, true,
-							"appModel", appModel,
+							"projectModel", projectModel,
 							"projectID", projectID,
 							"useImplicitCentre", true,
 							"spotCentreName", "implicit_centre") //providedNotBeVisibleInTheGUI
@@ -94,7 +93,7 @@ public class SortersChooserDlg {
 		else if (chosenMethod.equals(M_SLICES)) {
 			final CommandModule m = commandService
 					.run(SlicesSorterDlg.class, true,
-							"appModel", appModel,
+							"projectModel", projectModel,
 							"projectID",projectID)
 					.get();
 			if (!m.isCanceled()) sorterOfDaughters = ((SlicesSorterDlg)m.getCommand()).sorter;
@@ -102,7 +101,7 @@ public class SortersChooserDlg {
 		else if (chosenMethod.equals(M_TRIANGLE)) {
 			final CommandModule m = commandService
 					.run(TriangleSorterDlg.class, true,
-							"appModel", appModel,
+							"projectModel", projectModel,
 							"projectID",projectID)
 					.get();
 			if (!m.isCanceled()) sorterOfDaughters = ((TriangleSorterDlg)m.getCommand()).sorter;

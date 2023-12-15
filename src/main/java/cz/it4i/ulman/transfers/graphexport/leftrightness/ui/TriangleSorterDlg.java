@@ -30,7 +30,7 @@ package cz.it4i.ulman.transfers.graphexport.leftrightness.ui;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.TriangleSorter;
 import cz.it4i.ulman.transfers.graphexport.ui.util.PerProjectPrefsService;
-import org.mastodon.mamut.MamutAppModel;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.pool.PoolCollectionWrapper;
 import org.scijava.ItemVisibility;
@@ -61,7 +61,7 @@ public class TriangleSorterDlg implements Command {
 	public int outerLayerCutOff = 150;
 
 	@Parameter(persist = false)
-	private MamutAppModel appModel;
+	private ProjectModel projectModel;
 
 	@Parameter
 	private LogService logService;
@@ -94,7 +94,7 @@ public class TriangleSorterDlg implements Command {
 	@Override
 	public void run() {
 		storeParams();
-		final PoolCollectionWrapper<Spot> vertices = appModel.getModel().getGraph().vertices();
+		final PoolCollectionWrapper<Spot> vertices = projectModel.getModel().getGraph().vertices();
 
 		final Optional<Spot> spotCentre = vertices.stream().filter(s -> s.getLabel().equals(spotCentreName)).findFirst();
 		if (!spotCentre.isPresent()) {
