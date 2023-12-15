@@ -34,9 +34,9 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.joml.Vector3d;
 import org.mastodon.collection.ref.RefArrayList;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.tomancak.util.SpotsIterator;
 import org.mastodon.model.tag.TagSetStructure;
 import org.mastodon.pool.PoolCollectionWrapper;
@@ -95,7 +95,7 @@ public class FlatView extends DynamicCommand {
 		List<String> choices = new ArrayList<>(50);
 		choices.add("All white");
 
-		pluginAppModel.getAppModel().getModel()
+		projectModel.getModel()
 				.getTagSetModel()
 				.getTagSetStructure()
 				.getTagSets()
@@ -120,11 +120,11 @@ public class FlatView extends DynamicCommand {
 	private LogService logService;
 
 	@Parameter(persist = false)
-	private MamutPluginAppModel pluginAppModel;
+	private ProjectModel projectModel;
 
 	@Override
 	public void run() {
-		final PoolCollectionWrapper<Spot> vertices = pluginAppModel.getAppModel().getModel().getGraph().vertices();
+		final PoolCollectionWrapper<Spot> vertices = projectModel.getModel().getGraph().vertices();
 
 		Optional<Spot> searchSpot = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
 		if (!searchSpot.isPresent()) {
@@ -167,7 +167,7 @@ public class FlatView extends DynamicCommand {
 		sideVec = frontVec.cross(upVec, new Vector3d());
 
 		//<colors>
-		Optional<TagSetStructure.TagSet> ts = pluginAppModel.getAppModel().getModel()
+		Optional<TagSetStructure.TagSet> ts = projectModel.getModel()
 				.getTagSetModel()
 				.getTagSetStructure()
 				.getTagSets()
@@ -176,14 +176,14 @@ public class FlatView extends DynamicCommand {
 				.findFirst();
 		final GraphColorGenerator<Spot, Link> colorizer
 				= ts.isPresent() ? new TagSetGraphColorGenerator<>(
-				pluginAppModel.getAppModel().getModel().getTagSetModel(), ts.get())
+				projectModel.getModel().getTagSetModel(), ts.get())
 				: new FixedColorGenerator(255,255,255);
 		//</colors>
 
 		//sweeping
 		final Vector3d runner = new Vector3d();
 		final Vector3d runnerProjectedToLateralPlane = new Vector3d();
-		final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
+		final SpotsIterator visitor = new SpotsIterator(projectModel,
 				logService.subLogger("flat export"));
 
 		try {
@@ -237,8 +237,8 @@ public class FlatView extends DynamicCommand {
 			}
 			//end of: send debug data
 
-			Spot trackEnds = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
-			Spot trackStarts = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+			Spot trackEnds = projectModel.getModel().getGraph().vertexRef();
+			Spot trackStarts = projectModel.getModel().getGraph().vertexRef();
 			double[] xyS = { 0.f, 0.f };
 			double[] xyE = { 0.f, 0.f };
 			double[] xyD0 = { 0.f, 0.f };
@@ -301,8 +301,8 @@ public class FlatView extends DynamicCommand {
 			});
 			dataSender.onCompleted();
 
-			pluginAppModel.getAppModel().getModel().getGraph().releaseRef(trackStarts);
-			pluginAppModel.getAppModel().getModel().getGraph().releaseRef(trackEnds);
+			projectModel.getModel().getGraph().releaseRef(trackStarts);
+			projectModel.getModel().getGraph().releaseRef(trackEnds);
 
 			conn.closeConnection();
 		}

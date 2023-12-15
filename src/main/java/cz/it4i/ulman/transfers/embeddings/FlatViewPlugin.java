@@ -27,12 +27,12 @@
  */
 package cz.it4i.ulman.transfers.embeddings;
 
-import cz.it4i.ulman.transfers.DlBlenderInitProjectMenuItem;
 import org.mastodon.app.ui.ViewMenuBuilder;
 import org.mastodon.mamut.plugin.MamutPlugin;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
-import org.mastodon.ui.keymap.CommandDescriptionProvider;
-import org.mastodon.ui.keymap.CommandDescriptions;
+import org.mastodon.mamut.ProjectModel;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptionProvider;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptions;
+import org.mastodon.mamut.KeyConfigScopes;
 import org.mastodon.ui.keymap.KeyConfigContexts;
 import org.scijava.AbstractContextual;
 import org.scijava.command.CommandService;
@@ -49,7 +49,7 @@ import java.util.Map;
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
 
-@Plugin( type = DlBlenderInitProjectMenuItem.class )
+@Plugin( type = MamutPlugin.class )
 public class FlatViewPlugin extends AbstractContextual implements MamutPlugin {
 	public static final String KEYWORD_FOR_NO_SHORTCUT_ASSIGNMENT = "not mapped";
 
@@ -57,9 +57,10 @@ public class FlatViewPlugin extends AbstractContextual implements MamutPlugin {
 	// -----------------------------------------------------------------------
 	// CHANGE THESE (IF YOU WANT):
 
-	//this is how it will appear in the Key Config window
+	//this is how it will appear in the Key Config window; it should be ideally a unique
+	//identifier of this plugin; this is not what is visible in the GUI menu
 	private static final String PLUGIN_SHORT_NAME = "[displays] flat Blender view";
-	private static final String PLUGIN_DESCRIPTION = "TBA TBA TBA.";
+	private static final String PLUGIN_DESCRIPTION = "Flattens the 3D surface \"cartographically\" into a 2D plane.";
 
 	//menu path, item, and shortcut key
 	private static final ViewMenuBuilder.MenuItem PLUGIN_MENU_PATH
@@ -67,19 +68,24 @@ public class FlatViewPlugin extends AbstractContextual implements MamutPlugin {
 	private static final String PLUGIN_MENU_ITEM_NAME = "Flat view";
 
 	//provide activation shortcut as a single space separated list of keystrokes,
-	//keys are type in uppercase (e.g. 'T'), modifiers are spelled in full name (e.g. 'ctrl')
+	//keys are type in uppercase (e.g. 'T'), modifiers are spelled in full name (e.g. 'CTRL')
 	//if no shortcut should be assigned, provide KEYWORD_FOR_NO_SHORTCUT_ASSIGNMENT
 	private static final String[] PLUGIN_ACTIVATION_KEYS = { KEYWORD_FOR_NO_SHORTCUT_ASSIGNMENT };
+
+	//provide context where the above activation should be available
+	private static final String[] PLUGIN_ACTIVATION_CONTEXTS = { KeyConfigContexts.MASTODON,
+			KeyConfigContexts.BIGDATAVIEWER, KeyConfigContexts.TRACKSCHEME };
+			//more options: KeyConfigContexts.TABLE, KeyConfigContexts.GRAPHER
 
 	public void run() {
 		this.getContext().getService(CommandService.class).run(
 				FlatView.class, true,
 				//FlatDivisionAnalysis.class, true,
-				"pluginAppModel", pluginAppModel);
+				"projectModel", projectModel);
 	}
 	// -----------------------------------------------------------------------
 	// DON'T CHANGE ANYTHING BELOW
-	private MamutPluginAppModel pluginAppModel = null;
+	private ProjectModel projectModel = null;
 
 	// ------------- menu stuff -------------
 	private static final Map< String, String > menuText = new HashMap<>();
@@ -94,31 +100,26 @@ public class FlatViewPlugin extends AbstractContextual implements MamutPlugin {
 	public List< ViewMenuBuilder.MenuItem > getMenuItems()
 	{ return Collections.singletonList( PLUGIN_MENU_PATH ); }
 
-	@Plugin( type = DlBlenderInitProjectMenuItem.Descriptions.class )
+	@Plugin( type = CommandDescriptionProvider.class )
 	public static class Descriptions extends CommandDescriptionProvider
 	{
 		public Descriptions()
 		{
-			super( KeyConfigContexts.MASTODON );
-			//super( KeyConfigContexts.MASTODON, KeyConfigContexts.TRACKSCHEME,
-			//       KeyConfigContexts.BIGDATAVIEWER, KeyConfigContexts.TABLE );
+			super( KeyConfigScopes.MAMUT, PLUGIN_ACTIVATION_CONTEXTS );
 		}
 
 		@Override
-		public void getCommandDescriptions( final CommandDescriptions descriptions )
-		{
+		public void getCommandDescriptions( final CommandDescriptions descriptions ) {
 			descriptions.add( PLUGIN_SHORT_NAME, PLUGIN_ACTIVATION_KEYS, PLUGIN_DESCRIPTION );
 		}
 	}
 
 	// ------------- action stuff -------------
-	private final AbstractNamedAction actionOfThisPlugin = new RunnableAction( PLUGIN_SHORT_NAME, this::run);
-	{ actionOfThisPlugin.setEnabled( false ); }
+	private final AbstractNamedAction actionOfThisPlugin = new RunnableAction( PLUGIN_SHORT_NAME, this::run );
 
 	@Override
-	public void setAppPluginModel( final MamutPluginAppModel model ) {
-		this.pluginAppModel = model;
-		actionOfThisPlugin.setEnabled( model != null && model.getAppModel() != null );
+	public void setAppPluginModel( final ProjectModel projectModel ) {
+		this.projectModel = projectModel;
 	}
 
 	@Override
