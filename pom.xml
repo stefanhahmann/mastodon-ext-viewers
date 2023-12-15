@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>34.1.0</version>
+		<version>37.0.0</version>
 	</parent>
 
 	<groupId>cz.it4i.ulman.transfers</groupId>
@@ -155,17 +155,13 @@
 		<license.projectName>Online Mastodon Exports</license.projectName>
 		<package-name>cz.it4i.ulman.transfers</package-name>
 
-		<mastodon.version>1.0.0-beta-27-SNAPSHOT</mastodon.version>
+		<mastodon.version>1.0.0-beta-27</mastodon.version>
 	</properties>
 
 	<repositories>
 		<repository>
 			<id>scijava.public</id>
 			<url>https://maven.scijava.org/content/groups/public</url>
-		</repository>
-		<repository>
-			<id>it4i</id>
-			<url>https://artifactory.cs.vsb.cz/it4i/</url>
 		</repository>
 	</repositories>
 
@@ -185,7 +181,7 @@
 		<dependency>
 			<groupId>org.mastodon</groupId>
 			<artifactId>mastodon-tomancak</artifactId>
-			<version>0.3.2-SNAPSHOT</version>
+			<version>0.4.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.joml</groupId>
