@@ -31,7 +31,7 @@ import cz.it4i.ulman.transfers.graphexport.leftrightness.DescendantsSorter;
 import cz.it4i.ulman.transfers.graphexport.leftrightness.PolesSorter;
 import cz.it4i.ulman.transfers.graphexport.ui.util.PerProjectPrefsService;
 import org.joml.Vector3d;
-import org.mastodon.mamut.MamutAppModel;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.pool.PoolCollectionWrapper;
 import org.scijava.ItemVisibility;
@@ -68,7 +68,7 @@ public class PolesSorterDlg implements Command {
 	public int outerLayerCutOff = 150;
 
 	@Parameter(persist = false)
-	private MamutAppModel appModel;
+	private ProjectModel projectModel;
 
 	@Parameter
 	private LogService logService;
@@ -105,7 +105,7 @@ public class PolesSorterDlg implements Command {
 	@Override
 	public void run() {
 		storeParams();
-		final PoolCollectionWrapper<Spot> vertices = appModel.getModel().getGraph().vertices();
+		final PoolCollectionWrapper<Spot> vertices = projectModel.getModel().getGraph().vertices();
 
 		Optional<Spot> spot = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
 		if (!spot.isPresent()) {

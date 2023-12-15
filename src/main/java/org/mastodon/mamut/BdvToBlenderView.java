@@ -37,7 +37,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import org.mastodon.graph.GraphChangeListener;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
+import org.mastodon.mamut.views.bdv.MamutViewBdv;
 import org.mastodon.spatial.SpatialIndex;
 import org.mastodon.model.tag.TagSetStructure;
 import org.mastodon.spatial.VertexPositionListener;
@@ -46,14 +46,14 @@ import org.mastodon.ui.coloring.DefaultGraphColorGenerator;
 import org.mastodon.ui.coloring.TagSetGraphColorGenerator;
 
 public class BdvToBlenderView {
-	final MamutPluginAppModel appModel;
+	final ProjectModel projectModel;
 	MamutViewBdv viewBdv = null;
 	BlenderSendingUtils.BlenderConnectionHandle conn = null;
 	BucketsWithGraphics.BatchOfGraphics.Builder spotsMsgBuilder = null;
 
-	public BdvToBlenderView(final MamutPluginAppModel pluginAppModel)
+	public BdvToBlenderView(final ProjectModel projectModel)
 	{
-		appModel = pluginAppModel;
+		this.projectModel = projectModel;
 	}
 
 	public void openUseAutoCleanBdvToBlenderView(final String urlToBlender,
@@ -75,7 +75,8 @@ public class BdvToBlenderView {
 				.setDataID(555);
 
 		//create a BDV window
-		viewBdv = appModel.getWindowManager().createBigDataViewer();
+		viewBdv = projectModel.getWindowManager().createView(MamutViewBdv.class);
+		//viewBdv = projectModel.getWindowManager().createBigDataViewer();
 		spotsMsgBuilder.setDataName( viewBdv.getFrame().getTitle() );
 		//
 		//create a listener for it (which will _immediately_ collect updates from BDV)
@@ -89,15 +90,15 @@ public class BdvToBlenderView {
 
 		//register the BDV listener and start the thread
 		viewBdv.getViewerPanelMamut().renderTransformListeners().add(bdvUpdateListener);
-		appModel.getAppModel().getModel().getGraph().addVertexPositionListener(bdvUpdateListener);
-		appModel.getAppModel().getModel().getGraph().addGraphChangeListener(bdvUpdateListener);
+		projectModel.getModel().getGraph().addVertexPositionListener(bdvUpdateListener);
+		projectModel.getModel().getGraph().addGraphChangeListener(bdvUpdateListener);
 		blenderSenderThread.start();
 
 		viewBdv.onClose(() -> {
 			System.out.println("Cleaning up while BDV to Blender window is closing.");
 			viewBdv.getViewerPanelMamut().renderTransformListeners().remove(bdvUpdateListener);
-			appModel.getAppModel().getModel().getGraph().removeGraphChangeListener(bdvUpdateListener);
-			appModel.getAppModel().getModel().getGraph().removeVertexPositionListener(bdvUpdateListener);
+			projectModel.getModel().getGraph().removeGraphChangeListener(bdvUpdateListener);
+			projectModel.getModel().getGraph().removeVertexPositionListener(bdvUpdateListener);
 			viewBdv = null;
 			blenderSenderThread.stopTheWatching();
 			conn.closeConnection();
@@ -194,11 +195,11 @@ public class BdvToBlenderView {
 		final TagSetStructure.TagSet ts = viewBdv.getColoringModel().getTagSet();
 		final GraphColorGenerator<Spot, Link> colorizer
 				= ts != null ? new TagSetGraphColorGenerator<>(
-						appModel.getAppModel().getModel().getTagSetModel(), ts)
+						projectModel.getModel().getTagSetModel(), ts)
 				: new DefaultGraphColorGenerator<>();
 
 		final SpatialIndex<Spot> spots
-				= appModel.getAppModel().getModel().getSpatioTemporalIndex().getSpatialIndex(lastSentTimepoint);
+				= projectModel.getModel().getSpatioTemporalIndex().getSpatialIndex(lastSentTimepoint);
 		spots.forEach(s -> {
 			lastSentTransform.apply(s, spotNewPos);
 			sBuilder.setCentre( vBuilder

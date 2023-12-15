@@ -33,7 +33,7 @@ import cz.it4i.ulman.transfers.graphexport.ui.util.SortersChooserDlg;
 import org.mastodon.collection.RefList;
 import org.mastodon.collection.ref.RefArrayList;
 import org.mastodon.mamut.tomancak.util.SpotsIterator;
-import org.mastodon.mamut.MamutAppModel;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
@@ -56,7 +56,7 @@ public class SortDescendants implements Command
 	private final String selectionInfoMsg = "...also of only selected sub-trees.";
 
 	@Parameter(persist = false)
-	private MamutAppModel appModel;
+	private ProjectModel projectModel;
 	//
 	//optional ID to distinguish among Mastodon projects
 	@Parameter(persist = false, required = false)
@@ -88,16 +88,16 @@ public class SortDescendants implements Command
 			ownLogger = logServiceRef.subLogger("Lineage exports in "+projectID);
 
 			//first: resolve/harvest the sorter method...
-			sorterOfDaughters = SortersChooserDlg.resolveSorterOfDaughters(sortMode,commandService,appModel,projectID);
+			sorterOfDaughters = SortersChooserDlg.resolveSorterOfDaughters(sortMode,commandService, projectModel,projectID);
 			if (sorterOfDaughters == null) {
 				logServiceRef.info("Dialog canceled or some dialog error, exporting nothing.");
 				return;
 			}
 
 			//...and prepare the traversing
-			final SpotsIterator si = new SpotsIterator(appModel,ownLogger);
+			final SpotsIterator si = new SpotsIterator(projectModel,ownLogger);
 
-			final ModelGraph graph = appModel.getModel().getGraph();
+			final ModelGraph graph = projectModel.getModel().getGraph();
 			final RefList<Spot> daughterList = new RefArrayList<>(graph.vertices().getRefPool(),3);
 			final Link lRef = graph.edgeRef();
 			final Spot sRef = graph.vertices().createRef();
@@ -146,7 +146,7 @@ public class SortDescendants implements Command
 			ownLogger.info("processing "
 					+ (si.isSelectionEmpty ? "full" : "selected")
 					+ " graph done");
-			appModel.getModel().getGraph().notifyGraphChanged();
+			projectModel.getModel().getGraph().notifyGraphChanged();
 
 		} catch (InterruptedException e) {
 			logServiceRef.info("Dialog interrupted, doing nothing.");

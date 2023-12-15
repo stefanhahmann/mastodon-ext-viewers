@@ -37,25 +37,26 @@ import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import io.scif.gui.DefaultGUIService;
-import org.mastodon.app.ui.ViewMenuBuilder;
-import org.mastodon.mamut.BdvToBlenderView;
-import org.mastodon.mamut.plugin.MamutPlugin;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
-import org.mastodon.mamut.MamutAppModel;
-import org.mastodon.ui.keymap.CommandDescriptionProvider;
-import org.mastodon.ui.keymap.CommandDescriptions;
-import org.mastodon.ui.keymap.KeyConfigContexts;
+import org.scijava.Context;
+import org.scijava.service.Service;
 
 import org.scijava.AbstractContextual;
-import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.plugin.Plugin;
-import org.scijava.service.Service;
+import org.mastodon.mamut.plugin.MamutPlugin;
+
+import org.mastodon.mamut.ProjectModel;
+import org.mastodon.mamut.KeyConfigScopes;
+import org.mastodon.ui.keymap.KeyConfigContexts;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptionProvider;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptions;
+import org.mastodon.app.ui.ViewMenuBuilder;
+
 import org.scijava.ui.behaviour.util.Actions;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 import org.scijava.ui.behaviour.util.RunnableAction;
 
-@Plugin( type = FacadeToAllPluginsInHere.class )
+@Plugin( type = MamutPlugin.class )
 public class FacadeToAllPluginsInHere extends AbstractContextual implements MamutPlugin
 {
 	//"IDs" of all plug-ins wrapped in this class
@@ -96,12 +97,12 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	}
 
 	/** Command descriptions for all provided commands */
-	@Plugin( type = Descriptions.class )
+	@Plugin( type = CommandDescriptionProvider.class )
 	public static class Descriptions extends CommandDescriptionProvider
 	{
 		public Descriptions()
 		{
-			super( KeyConfigContexts.TRACKSCHEME, KeyConfigContexts.BIGDATAVIEWER );
+			super(KeyConfigScopes.MAMUT, KeyConfigContexts.TRACKSCHEME, KeyConfigContexts.BIGDATAVIEWER );
 		}
 
 		@Override
@@ -116,27 +117,17 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	//------------------------------------------------------------------------
 
 
-	private final AbstractNamedAction actionBdvExport;
-	private final AbstractNamedAction actionAllExport;
-	private final AbstractNamedAction actionLineageExport;
-	private final AbstractNamedAction actionLineageExport_NQ;
+	private final AbstractNamedAction actionBdvExport = new RunnableAction( BDV_SPOTS_EXPORTS,  this::openBdvToBlenderWindow);
+	private final AbstractNamedAction actionAllExport = new RunnableAction( ALL_SPOTS_EXPORTS,  this::sendAllToBlender);
+	private final AbstractNamedAction actionLineageExport = new RunnableAction( LINEAGE_EXPORTS,    this::sendTreesToBlender);
+	private final AbstractNamedAction actionLineageExport_NQ = new RunnableAction( LINEAGE_EXPORTS_NQ, this::sendTreesToBlender_fastWithoutAsking);
 
-	private MamutPluginAppModel pluginAppModel;
-
-	public FacadeToAllPluginsInHere()
-	{
-		actionBdvExport        = new RunnableAction( BDV_SPOTS_EXPORTS,  this::openBdvToBlenderWindow);
-		actionAllExport        = new RunnableAction( ALL_SPOTS_EXPORTS,  this::sendAllToBlender);
-		actionLineageExport    = new RunnableAction( LINEAGE_EXPORTS,    this::sendTreesToBlender);
-		actionLineageExport_NQ = new RunnableAction( LINEAGE_EXPORTS_NQ, this::sendTreesToBlender_fastWithoutAsking);
-		updateEnabledActions();
-	}
+	private ProjectModel projectModel;
 
 	@Override
-	public void setAppPluginModel( final MamutPluginAppModel model )
+	public void setAppPluginModel( final ProjectModel projectModel )
 	{
-		this.pluginAppModel = model;
-		updateEnabledActions();
+		this.projectModel = projectModel;
 	}
 
 	@Override
@@ -147,16 +138,6 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 		actions.namedAction(actionLineageExport,    LINEAGE_EXPORTS_KEYS );
 		actions.namedAction(actionLineageExport_NQ, LINEAGE_EXPORTS_NQ_KEYS );
 	}
-
-	/** enables/disables menu items based on the availability of some project */
-	private void updateEnabledActions()
-	{
-		final MamutAppModel appModel = ( pluginAppModel == null ) ? null : pluginAppModel.getAppModel();
-		actionBdvExport.setEnabled( appModel != null );
-		actionAllExport.setEnabled( appModel != null );
-		actionLineageExport.setEnabled( appModel != null );
-		actionLineageExport_NQ.setEnabled( appModel != null );
-	}
 	//------------------------------------------------------------------------
 	//------------------------------------------------------------------------
 
@@ -164,23 +145,22 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 	{
 		this.getContext().getService(CommandService.class).run(
 				BdvToBlenderPlugin.class, true,
-				"pluginAppModel", pluginAppModel);
+				"projectModel", projectModel);
 	}
 
 	private void sendAllToBlender()
 	{
 		this.getContext().getService(CommandService.class).run(
 			FullLineageToBlender.class, true,
-			"pluginAppModel", pluginAppModel);
+			"projectModel", projectModel);
 	}
 
 	private void sendTreesToBlender()
 	{
 		this.getContext().getService(CommandService.class).run(
 			LineageExporter.class, true,
-			"appModel", pluginAppModel.getAppModel(),
-				"projectID", pluginAppModel.getWindowManager().getProjectManager()
-						.getProject().getProjectRoot().getName());
+			"projectModel", projectModel,
+				"projectID", projectModel.getProjectName());
 	}
 
 	private void sendTreesToBlender_fastWithoutAsking()
@@ -198,8 +178,7 @@ public class FacadeToAllPluginsInHere extends AbstractContextual implements Mamu
 
 		headlessCtx.getService(CommandService.class).run(
 			LineageExporter.class, true,
-			"appModel", pluginAppModel.getAppModel(),
-				"projectID", pluginAppModel.getWindowManager().getProjectManager()
-						.getProject().getProjectRoot().getName());
+			"projectModel", projectModel,
+				"projectID", projectModel.getProjectName());
 	}
 }

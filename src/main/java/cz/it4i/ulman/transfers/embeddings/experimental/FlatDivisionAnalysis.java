@@ -29,9 +29,9 @@ package cz.it4i.ulman.transfers.embeddings.experimental;
 
 import org.joml.Vector3d;
 import org.mastodon.collection.ref.RefArrayList;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.mamut.tomancak.util.SpotsIterator;
 import org.mastodon.model.tag.TagSetStructure;
 import org.mastodon.pool.PoolCollectionWrapper;
@@ -90,7 +90,7 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 		List<String> choices = new ArrayList<>(50);
 		choices.add("All white");
 
-		pluginAppModel.getAppModel().getModel()
+		projectModel.getModel()
 				.getTagSetModel()
 				.getTagSetStructure()
 				.getTagSets()
@@ -103,11 +103,11 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 	private LogService logService;
 
 	@Parameter(persist = false)
-	private MamutPluginAppModel pluginAppModel;
+	private ProjectModel projectModel;
 
 	@Override
 	public void run() {
-		final PoolCollectionWrapper<Spot> vertices = pluginAppModel.getAppModel().getModel().getGraph().vertices();
+		final PoolCollectionWrapper<Spot> vertices = projectModel.getModel().getGraph().vertices();
 
 		Optional<Spot> searchSpot = vertices.stream().filter(s -> s.getLabel().equals(spotNorthPoleName)).findFirst();
 		if (!searchSpot.isPresent()) {
@@ -150,7 +150,7 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 		sideVec = frontVec.cross(upVec, new Vector3d());
 
 		//<colors>
-		Optional<TagSetStructure.TagSet> ts = pluginAppModel.getAppModel().getModel()
+		Optional<TagSetStructure.TagSet> ts = projectModel.getModel()
 				.getTagSetModel()
 				.getTagSetStructure()
 				.getTagSets()
@@ -159,12 +159,12 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 				.findFirst();
 		final GraphColorGenerator<Spot, Link> colorizer
 				= ts.isPresent() ? new TagSetGraphColorGenerator<>(
-				pluginAppModel.getAppModel().getModel().getTagSetModel(), ts.get())
+				projectModel.getModel().getTagSetModel(), ts.get())
 				: new FixedColorGenerator(255,255,255);
 		//</colors>
 
 		//sweeping
-		final SpotsIterator visitor = new SpotsIterator(pluginAppModel.getAppModel(),
+		final SpotsIterator visitor = new SpotsIterator(projectModel,
 				logService.subLogger("flat export"));
 
 		org.mastodon.collection.RefList<Spot> mothers = new RefArrayList<>(vertices.getRefPool());
@@ -176,7 +176,7 @@ public class FlatDivisionAnalysis extends DynamicCommand {
 		});
 
 		double[] xy = { 0.f, 0.f };
-		Spot trackStarts = pluginAppModel.getAppModel().getModel().getGraph().vertexRef();
+		Spot trackStarts = projectModel.getModel().getGraph().vertexRef();
 		for (Spot m : mothers) {
 			get2DPos(m, xy);
 			visitor.findUpstreamSpot(m,trackStarts,999);
