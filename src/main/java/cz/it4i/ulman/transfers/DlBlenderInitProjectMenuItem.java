@@ -27,28 +27,29 @@
  */
 package cz.it4i.ulman.transfers;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Collections;
-
-import org.mastodon.mamut.launcher.RecentProjectsPanel;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
-import org.mastodon.ui.keymap.CommandDescriptionProvider;
-import org.mastodon.ui.keymap.CommandDescriptions;
+import org.mastodon.app.ui.ViewMenuBuilder;
+import org.mastodon.mamut.plugin.MamutPlugin;
+import org.mastodon.mamut.ProjectModel;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptionProvider;
+import org.scijava.ui.behaviour.io.gui.CommandDescriptions;
+import org.mastodon.mamut.KeyConfigScopes;
 import org.mastodon.ui.keymap.KeyConfigContexts;
 import org.scijava.AbstractContextual;
-import org.mastodon.mamut.plugin.MamutPlugin;
-import org.mastodon.app.ui.ViewMenuBuilder;
 import org.scijava.plugin.Plugin;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
 import org.scijava.ui.behaviour.util.Actions;
 import org.scijava.ui.behaviour.util.RunnableAction;
+import org.mastodon.mamut.launcher.RecentProjectsPanel;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
 
-@Plugin( type = DlBlenderInitProjectMenuItem.class )
+@Plugin( type = MamutPlugin.class )
 public class DlBlenderInitProjectMenuItem extends AbstractContextual implements MamutPlugin {
 	public static final String KEYWORD_FOR_NO_SHORTCUT_ASSIGNMENT = "not mapped";
 
@@ -56,7 +57,8 @@ public class DlBlenderInitProjectMenuItem extends AbstractContextual implements 
 	// -----------------------------------------------------------------------
 	// CHANGE THESE (IF YOU WANT):
 
-	//this is how it will appear in the Key Config window
+	//this is how it will appear in the Key Config window; it should be ideally a unique
+	//identifier of this plugin; this is not what is visible in the GUI menu
 	private static final String PLUGIN_SHORT_NAME = "[displays] download Blender project";
 	private static final String PLUGIN_DESCRIPTION = "Opens URL pointing to a reference Blender project file, which is required for some Blender stuff here to work.";
 
@@ -66,9 +68,14 @@ public class DlBlenderInitProjectMenuItem extends AbstractContextual implements 
 	private static final String PLUGIN_MENU_ITEM_NAME = "Download Blender project";
 
 	//provide activation shortcut as a single space separated list of keystrokes,
-	//keys are type in uppercase (e.g. 'T'), modifiers are spelled in full name (e.g. 'ctrl')
+	//keys are type in uppercase (e.g. 'T'), modifiers are spelled in full name (e.g. 'CTRL')
 	//if no shortcut should be assigned, provide KEYWORD_FOR_NO_SHORTCUT_ASSIGNMENT
 	private static final String[] PLUGIN_ACTIVATION_KEYS = { KEYWORD_FOR_NO_SHORTCUT_ASSIGNMENT };
+
+	//provide context where the above activation should be available
+	private static final String[] PLUGIN_ACTIVATION_CONTEXTS = { KeyConfigContexts.MASTODON,
+			KeyConfigContexts.BIGDATAVIEWER, KeyConfigContexts.TRACKSCHEME };
+			//more options: KeyConfigContexts.TABLE, KeyConfigContexts.GRAPHER
 
 	public void run() {
 		System.out.println("Downloading two files: display_server_addon.zip and display_server_project.blend");
@@ -92,30 +99,25 @@ public class DlBlenderInitProjectMenuItem extends AbstractContextual implements 
 	public List< ViewMenuBuilder.MenuItem > getMenuItems()
 	{ return Collections.singletonList( PLUGIN_MENU_PATH ); }
 
-	@Plugin( type = Descriptions.class )
+	@Plugin( type = CommandDescriptionProvider.class )
 	public static class Descriptions extends CommandDescriptionProvider
 	{
 		public Descriptions()
 		{
-			super( KeyConfigContexts.MASTODON );
-			//super( KeyConfigContexts.MASTODON, KeyConfigContexts.TRACKSCHEME,
-			//       KeyConfigContexts.BIGDATAVIEWER, KeyConfigContexts.TABLE );
+			super( KeyConfigScopes.MAMUT, PLUGIN_ACTIVATION_CONTEXTS );
 		}
 
 		@Override
-		public void getCommandDescriptions( final CommandDescriptions descriptions )
-		{
+		public void getCommandDescriptions( final CommandDescriptions descriptions ) {
 			descriptions.add( PLUGIN_SHORT_NAME, PLUGIN_ACTIVATION_KEYS, PLUGIN_DESCRIPTION );
 		}
 	}
 
 	// ------------- action stuff -------------
-	private final AbstractNamedAction actionOfThisPlugin = new RunnableAction( PLUGIN_SHORT_NAME, this::run);
-	{ actionOfThisPlugin.setEnabled( false ); }
+	private final AbstractNamedAction actionOfThisPlugin = new RunnableAction( PLUGIN_SHORT_NAME, this::run );
 
 	@Override
-	public void setAppPluginModel( final MamutPluginAppModel model ) {
-		actionOfThisPlugin.setEnabled( model != null && model.getAppModel() != null );
+	public void setAppPluginModel( final ProjectModel projectModel ) {
 	}
 
 	@Override
