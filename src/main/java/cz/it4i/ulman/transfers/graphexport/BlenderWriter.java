@@ -36,6 +36,9 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.mastodon.RefPool;
+import org.mastodon.mamut.ProjectModel;
+import org.mastodon.mamut.model.Spot;
 import org.scijava.log.LogService;
 import org.scijava.log.StderrLogService;
 
@@ -55,24 +58,32 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	final LogService logger;
 
 	public BlenderWriter(final String hostAndPort,
-	                     final String clientName)
+	                     final String clientName,
+	                     final ProjectModel mastodonProjectModel)
 	{
-		this(hostAndPort, clientName, new StderrLogService());
+		this(hostAndPort, clientName, mastodonProjectModel, new StderrLogService());
 	}
 
 	public BlenderWriter(final String hostAndPort,
 	                     final String clientName,
+	                     final ProjectModel mastodonProjectModel,
 	                     LogService logService)
 	{
-		this(ManagedChannelBuilder.forTarget(hostAndPort).usePlaintext().build(), clientName, logService);
+		this(ManagedChannelBuilder.forTarget(hostAndPort).usePlaintext().build(), clientName, mastodonProjectModel, logService);
 		url = hostAndPort;
 	}
 
+	RefPool<Spot> verticesPool;
+	Spot spot;
+
 	public BlenderWriter(final ManagedChannel someExistingChannel,
 	                     final String clientName,
+	                     final ProjectModel mastodonProjectModel,
 	                     LogService logService)
 	{
 		logger = logService;
+		spot = mastodonProjectModel.getModel().getGraph().vertices().createRef();
+		verticesPool = mastodonProjectModel.getModel().getGraph().vertices().getRefPool();
 
 		try {
 			channel = someExistingChannel;
@@ -102,6 +113,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		// resources the channel should be shut down when it will no longer be used. If it may be used
 		// again leave it running.
 		logger.info("connection to Blender is closing...");
+		verticesPool.releaseRef(spot);
 		try {
 			if (nodeBuilder != null && mainDataStream != null) {
 				mainDataStream.onNext( nodeBuilder.build() );
