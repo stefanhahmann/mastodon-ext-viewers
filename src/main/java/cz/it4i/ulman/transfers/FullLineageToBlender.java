@@ -86,8 +86,10 @@ public class FullLineageToBlender extends DynamicCommand {
 		this.getInfo().getMutableInput("colorScheme",String.class).setChoices( choices );
 	}
 
-	@Parameter(label = "Spheres scale:")
-	private float scaleFactor = 0.4f;
+	@Parameter(label = "Spheres size:", choices = {"scaled by factor value below", "set to the absolute size below"})
+	private String scaleMode = "scaled";
+	@Parameter(label = "Spheres... value:")
+	private float scaleSize = 1.5f;
 
 	//TODO: make a drop-down choice box: full data as one node, tree as one node, track as one node
 	private static final String GRP_LEVEL_FULL = "The whole lineage as one Blender node";
@@ -110,6 +112,7 @@ public class FullLineageToBlender extends DynamicCommand {
 	@Override
 	public void run() {
 		//init the communication side
+		final boolean areSphereSizesScaled = scaleMode.startsWith("scaled");
 		try {
 			final BlenderSendingUtils.BlenderConnectionHandle conn
 					= BlenderSendingUtils.connectToBlender(connectURL, clientName);
@@ -279,7 +282,11 @@ public class FullLineageToBlender extends DynamicCommand {
 							//updates the builder content and builds inside setCentre()
 							.setX(currPos[0]).setY(currPos[1]).setZ(currPos[2]) );
 					sBuilder.setTime(spot.getTimepoint());
-					sBuilder.setRadius(scaleFactor * (float)Math.sqrt(spot.getBoundingSphereRadiusSquared()));
+					//
+					float size = scaleSize;
+					if (areSphereSizesScaled) size *= (float)Math.sqrt(spot.getBoundingSphereRadiusSquared());
+					sBuilder.setRadius(size);
+					//
 					sBuilder.setColorXRGB( colorizer.color(spot) );
 					//logService.info("adding sphere at: "+sBuilder.getTime());
 					nodeBuilder[0].addSpheres(sBuilder);
