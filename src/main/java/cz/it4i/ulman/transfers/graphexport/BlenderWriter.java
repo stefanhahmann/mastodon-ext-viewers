@@ -208,6 +208,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 	HashMap<Integer,Float> xs = new HashMap<>(10000);
 	HashMap<Integer,Float> ys = new HashMap<>(10000);
+	HashMap<Integer,Float> ts = new HashMap<>(10000);
 	float memorizeAndReturn(int id, float value, final HashMap<Integer,Float> memory) {
 		memory.put(id,value);
 		return value;
@@ -223,6 +224,13 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 			ids.put(string_id, int_id);
 		}
 		return int_id;
+	}
+
+	float getTime(final String string_id) {
+		//NB: benefiting from the knowledge that the provided IDs are in fact vertices pool indices...
+		int poolIdx = Integer.parseInt(string_id);
+		verticesPool.getObject(poolIdx,spot);
+		return spot.getTimepoint();
 	}
 	// -----------------------------------------------------------------------------
 
@@ -240,10 +248,13 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		memorizeAndReturn(i, x, xs);
 		memorizeAndReturn(i, y, ys);
 
+		float time = getTime(id);
+		memorizeAndReturn(i, time, ts);
+
 		BucketsWithGraphics.SphereParameters.Builder s = BucketsWithGraphics.SphereParameters.newBuilder();
 		s.setCentre( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(x).setY(z_coord).setZ(y).build() );
-		s.setTime(0);
+		s.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		s.setRadius(width);
 		s.setColorXRGB(colorRGB);
 		//logger.info("adding sphere: "+s);
