@@ -137,10 +137,10 @@ public class BdvToBlenderView {
 		final long updateInterval;
 		boolean keepWatching = true;
 		BdvViewUpdateBlenderSenderThread(final BdvViewUpdateListener dataSupplier,
-		                                 final long updateIntervalInMilis) {
+		                                 final long updateIntervalInMillis) {
 			super("Mastodon BDV updater to Blender");
 			dataSource = dataSupplier;
-			updateInterval = updateIntervalInMilis;
+			updateInterval = updateIntervalInMillis;
 		}
 
 		void stopTheWatching() {
