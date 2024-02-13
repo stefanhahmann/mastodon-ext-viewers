@@ -153,13 +153,15 @@ public class BdvToBlenderView {
 			try {
 				while (keepWatching)
 				{
-					if (dataSource.isLastRequestDataValid
-							&& (System.currentTimeMillis() - dataSource.timeStampOfLastRequest > updateInterval))
-					{
-						System.out.println("silence detected, going to send the current data");
-						dataSource.isLastRequestDataValid = false;
-						sendBdvSpotsToBlender();
-					} else sleep(updateInterval/2);
+					long timeNow = System.currentTimeMillis();
+					if (dataSource.isLastRequestDataValid) {
+						if ((timeNow - dataSource.timeStampOfLastRequest) > updateInterval) {
+							//System.out.println("silence detected, going to send the current data");
+							dataSource.isLastRequestDataValid = false;
+							sendBdvSpotsToBlender();
+						}
+					}
+					sleep(updateInterval/2);
 				}
 			}
 			catch (InterruptedException e)
