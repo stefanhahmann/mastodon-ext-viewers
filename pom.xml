@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -10,7 +9,7 @@
 
 	<groupId>cz.it4i.ulman.transfers</groupId>
 	<artifactId>mastodon-ext-viewers</artifactId>
-	<version>0.9.11-SNAPSHOT</version>
+	<version>0.9.12-SNAPSHOT</version>
 
 	<organization>
 		<name>IT4Innovations</name>
@@ -141,8 +140,8 @@
 					<target>
 						<!-- make sure no COMMITrev tag files are floating around from some previous runs -->
 						<!-- NB: this task is redundant whenever 'mvn clean' is executed... -->
-						<delete><fileset dir="${project.build.outputDirectory}" includes="COMMITrev_*"/></delete>
-						<touch file="${project.build.outputDirectory}/COMMITrev_${git.commit.id.abbrev}_${project.artifactId}"/>
+						<delete><fileset dir="${project.build.outputDirectory}" includes="COMMITrev_*" /></delete>
+						<touch file="${project.build.outputDirectory}/COMMITrev_${git.commit.id.abbrev}_${project.artifactId}" />
 					</target>
 				</configuration>
 			</plugin>
