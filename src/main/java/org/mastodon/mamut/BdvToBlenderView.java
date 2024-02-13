@@ -175,6 +175,11 @@ public class BdvToBlenderView {
 			= BucketsWithGraphics.Vector3D.newBuilder();
 	final BucketsWithGraphics.SphereParameters.Builder sBuilder
 			= BucketsWithGraphics.SphereParameters.newBuilder();
+	final BucketsWithGraphics.TimeSpan timeSpanSealed = BucketsWithGraphics.TimeSpan
+			.newBuilder()
+			.setTimeFrom(-0.5f)
+			.setTimeTill(1000000)
+			.build();
 	final RealPoint spotNewPos = new RealPoint(3);
 
 	private float spotScalingForBlender = 1.0f;
@@ -190,7 +195,7 @@ public class BdvToBlenderView {
 		lastSentTimepoint = viewBdv.getViewerPanelMamut().state().getCurrentTimepoint();
 		//System.out.println("new tp: "+lastSentTimepoint+", and new transform: "+lastSentTransform);
 
-		sBuilder.setTime(0);
+		sBuilder.setSpan(timeSpanSealed);
 		spotsMsgBuilder.clearSpheres();
 
 		final TagSetStructure.TagSet ts = viewBdv.getColoringModel().getTagSet();
