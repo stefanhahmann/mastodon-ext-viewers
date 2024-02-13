@@ -105,7 +105,7 @@ public class FullLineageToBlender extends DynamicCommand {
 	@Parameter(label = "Line segments length in time points:", min = "1", stepSize = "1")
 	private int lineTimeSpan = 10;
 
-	@Parameter(label = "Displace lineages eccentrically by this amount:")
+	@Parameter(label = "EXPERIMENTAL: Displace lineages eccentrically by this amount:")
 	private float eccentricOffsetSize = 0.f;
 
 	@Parameter
