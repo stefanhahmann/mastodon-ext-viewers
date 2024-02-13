@@ -101,6 +101,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	}
 
 	//private String currentSourceName = "Mastodon lineage trees";
+	private final BucketsWithGraphics.TimeSpan.Builder tSpanBuilder = BucketsWithGraphics.TimeSpan.newBuilder();
 	private BucketsWithGraphics.ClientIdentification currentCid;
 	public String currentCollectionName = "lineage trees";
 
@@ -267,13 +268,14 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 		final int fi = translateID(fromId);
 		final int ti = translateID(toId);
+		final float time = ts.getOrDefault(ti,0.f);
 
 		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(fi)).setY(z_coord).setZ(ys.get(fi)).build() );
 		l.setEndPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(ti)).setY(z_coord).setZ(ys.get(ti)).build() );
-		l.setTime(0);
+		l.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		l.setRadius(lineRadius);
 		l.setColorIdx(0);
 		//logger.info("adding line: "+l);
@@ -297,13 +299,14 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 		final int fid = translateID(fromId);
 		final int tid = translateID(toId);
+		final float time = ts.getOrDefault(tid,0.f);
 
 		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(fid)).setY(z_coord).setZ(ys.get(fid)).build() );
 		l.setEndPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(tid)).setY(z_coord).setZ(ys.get(tid)-bendingOffsetY).build() );
-		l.setTime(0);
+		l.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		l.setRadius(lineRadius);
 		l.setColorIdx(0);
 		nodeBuilder.addLines(l);
