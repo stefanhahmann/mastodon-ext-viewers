@@ -1,8 +1,8 @@
 /*-
  * #%L
- * mastodon-tomancak
+ * Online Mastodon Exports
  * %%
- * Copyright (C) 2018 - 2022 Tobias Pietzsch
+ * Copyright (C) 2021 - 2024 Vladimír Ulman
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
