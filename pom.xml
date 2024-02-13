@@ -155,7 +155,7 @@
 		<license.projectName>Online Mastodon Exports</license.projectName>
 		<package-name>cz.it4i.ulman.transfers</package-name>
 
-		<mastodon.version>1.0.0-beta-27</mastodon.version>
+		<mastodon.version>1.0.0-beta-28</mastodon.version>
 	</properties>
 
 	<repositories>
@@ -181,7 +181,7 @@
 		<dependency>
 			<groupId>org.mastodon</groupId>
 			<artifactId>mastodon-tomancak</artifactId>
-			<version>0.4.1-SNAPSHOT</version>
+			<version>0.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.joml</groupId>
