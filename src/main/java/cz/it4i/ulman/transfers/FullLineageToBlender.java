@@ -100,8 +100,10 @@ public class FullLineageToBlender extends DynamicCommand {
 
 	@Parameter(label = "Draw also tracks (as line segments):")
 	private boolean doLines = false;
-	@Parameter(label = "Line segments width:")
+	@Parameter(label = "Line segments absolute width:", stepSize = "0.1")
 	private float lineWidth = 0.4f;
+	@Parameter(label = "Line segments length in time points:", min = "1", stepSize = "1")
+	private int lineTimeSpan = 10;
 
 	@Parameter(label = "Displace lineages eccentrically by this amount:")
 	private float eccentricOffsetSize = 0.f;
@@ -128,6 +130,8 @@ public class FullLineageToBlender extends DynamicCommand {
 					= BucketsWithGraphics.SphereParameters.newBuilder();
 			final BucketsWithGraphics.LineParameters.Builder lBuilder
 					= BucketsWithGraphics.LineParameters.newBuilder();
+			final BucketsWithGraphics.TimeSpan.Builder tSpanBuilder
+					= BucketsWithGraphics.TimeSpan.newBuilder();
 
 			//<colors>
 			Optional<TagSetStructure.TagSet> ts = projectModel.getModel()
@@ -249,7 +253,13 @@ public class FullLineageToBlender extends DynamicCommand {
 								.setX(motherSpotRef.getFloatPosition(0))
 								.setY(motherSpotRef.getFloatPosition(1))
 								.setZ(motherSpotRef.getFloatPosition(2)) );
-						lBuilder.setTime(spot.getTimepoint());
+						//
+						final float spotTime = spot.getTimepoint();
+						lBuilder.setSpan( tSpanBuilder
+										.setTimeFrom(spotTime-0.5f)
+										.setTimeTill(spotTime+0.5f +lineTimeSpan-1)
+										.build() );
+						//
 						lBuilder.setRadius(lineWidth);
 						lBuilder.setColorXRGB( colorizer.color(spot) );
 						nodeBuilder[0].addLines(lBuilder);
