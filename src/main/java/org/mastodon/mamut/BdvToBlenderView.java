@@ -135,6 +135,7 @@ public class BdvToBlenderView {
 	{
 		final BdvViewUpdateListener dataSource;
 		final long updateInterval;
+		long lastUpdateTimeStamp = 0;
 		boolean keepWatching = true;
 		BdvViewUpdateBlenderSenderThread(final BdvViewUpdateListener dataSupplier,
 		                                 final long updateIntervalInMillis) {
@@ -159,6 +160,12 @@ public class BdvToBlenderView {
 							//System.out.println("silence detected, going to send the current data");
 							dataSource.isLastRequestDataValid = false;
 							sendBdvSpotsToBlender();
+							lastUpdateTimeStamp = timeNow;
+						} else if ((timeNow - lastUpdateTimeStamp) > 4*updateInterval) {
+							//System.out.println("long-ignored pending update detected, going to send the current data");
+							dataSource.isLastRequestDataValid = false;
+							sendBdvSpotsToBlender();
+							lastUpdateTimeStamp = timeNow;
 						}
 					}
 					sleep(updateInterval/2);
