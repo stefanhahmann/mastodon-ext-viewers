@@ -150,7 +150,7 @@
 	</build>
 
 	<properties>
-		<license.licenseName>BSD simplified (2 clause)</license.licenseName>
+		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>Vladimír Ulman</license.copyrightOwners>
 		<license.projectName>Online Mastodon Exports</license.projectName>
 		<package-name>cz.it4i.ulman.transfers</package-name>
