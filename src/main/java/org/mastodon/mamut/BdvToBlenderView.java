@@ -191,6 +191,7 @@ public class BdvToBlenderView {
 	synchronized
 	void sendBdvSpotsToBlender()
 	{
+		long timeA = System.currentTimeMillis();
 		viewBdv.getViewerPanelMamut().state().getViewerTransform(lastSentTransform);
 		lastSentTimepoint = viewBdv.getViewerPanelMamut().state().getCurrentTimepoint();
 		//System.out.println("new tp: "+lastSentTimepoint+", and new transform: "+lastSentTransform);
@@ -221,6 +222,8 @@ public class BdvToBlenderView {
 				= conn.commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
 		connMsg.onNext( spotsMsgBuilder.build() );
 		connMsg.onCompleted();
-		System.out.println("sent "+spotsMsgBuilder.getSpheresCount()+" spots");
+		long timeB = System.currentTimeMillis();
+		System.out.println("sent "+spotsMsgBuilder.getSpheresCount()
+				+" spots in "+(timeB-timeA)+" millis");
 	}
 }
