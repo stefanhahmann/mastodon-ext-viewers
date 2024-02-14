@@ -123,10 +123,18 @@ message Vector3D {
 	float z = 3;
 }
 
+message TimeSpan {
+	float timeFrom = 1;
+	float timeTill = 2;
+}
+
 message SphereParameters {
-	Vector3D centre  = 1;
-	uint32 time      = 3;
-	float radius     = 4;
+	Vector3D centre     = 1;
+	oneof timeSpec {
+		uint32 time      = 3;
+		TimeSpan span    = 7;
+	}
+	float radius        = 4;
 	oneof color {
 		uint32 colorXRGB = 5;
 		uint32 colorIdx  = 6;
@@ -134,10 +142,13 @@ message SphereParameters {
 }
 
 message LineParameters {
-	Vector3D startPos = 1;
-	Vector3D endPos   = 2;
-	uint32 time       = 3;
-	float radius      = 4;
+	Vector3D startPos   = 1;
+	Vector3D endPos     = 2;
+	oneof timeSpec {
+		uint32 time      = 3;
+		TimeSpan span    = 7;
+	}
+	float radius        = 4;
 	oneof color {
 		uint32 colorXRGB = 5;
 		uint32 colorIdx  = 6;
@@ -145,10 +156,13 @@ message LineParameters {
 }
 
 message VectorParameters {
-	Vector3D startPos = 1;
-	Vector3D endPos   = 2;
-	uint32 time       = 3;
-	float radius      = 4;
+	Vector3D startPos   = 1;
+	Vector3D endPos     = 2;
+	oneof timeSpec {
+		uint32 time      = 3;
+		TimeSpan span    = 7;
+	}
+	float radius        = 4;
 	oneof color {
 		uint32 colorXRGB = 5;
 		uint32 colorIdx  = 6;

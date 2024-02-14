@@ -28,12 +28,13 @@
  */
 package cz.it4i.ulman;
 
-import org.scijava.Context;
-import org.scijava.ui.UIService;
+import net.imagej.ImageJ;
+import org.mastodon.mamut.launcher.MastodonLauncherCommand;
 
 public class StartFullFiji {
 	public static void main(String[] args) {
-		final Context context = new Context();
-		context.service( UIService.class ).showUI();
+		ImageJ ij = new ImageJ();
+		ij.ui().showUI();
+		ij.command().run(MastodonLauncherCommand.class,true);
 	}
 }

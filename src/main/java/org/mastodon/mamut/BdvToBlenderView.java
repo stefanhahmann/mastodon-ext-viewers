@@ -135,12 +135,13 @@ public class BdvToBlenderView {
 	{
 		final BdvViewUpdateListener dataSource;
 		final long updateInterval;
+		long lastUpdateTimeStamp = 0;
 		boolean keepWatching = true;
 		BdvViewUpdateBlenderSenderThread(final BdvViewUpdateListener dataSupplier,
-		                                 final long updateIntervalInMilis) {
+		                                 final long updateIntervalInMillis) {
 			super("Mastodon BDV updater to Blender");
 			dataSource = dataSupplier;
-			updateInterval = updateIntervalInMilis;
+			updateInterval = updateIntervalInMillis;
 		}
 
 		void stopTheWatching() {
@@ -153,13 +154,21 @@ public class BdvToBlenderView {
 			try {
 				while (keepWatching)
 				{
-					if (dataSource.isLastRequestDataValid
-							&& (System.currentTimeMillis() - dataSource.timeStampOfLastRequest > updateInterval))
-					{
-						System.out.println("silence detected, going to send the current data");
-						dataSource.isLastRequestDataValid = false;
-						sendBdvSpotsToBlender();
-					} else sleep(updateInterval/2);
+					long timeNow = System.currentTimeMillis();
+					if (dataSource.isLastRequestDataValid) {
+						if ((timeNow - dataSource.timeStampOfLastRequest) > updateInterval) {
+							//System.out.println("silence detected, going to send the current data");
+							dataSource.isLastRequestDataValid = false;
+							sendBdvSpotsToBlender();
+							lastUpdateTimeStamp = timeNow;
+						} else if ((timeNow - lastUpdateTimeStamp) > 4*updateInterval) {
+							//System.out.println("long-ignored pending update detected, going to send the current data");
+							dataSource.isLastRequestDataValid = false;
+							sendBdvSpotsToBlender();
+							lastUpdateTimeStamp = timeNow;
+						}
+					}
+					sleep(updateInterval/2);
 				}
 			}
 			catch (InterruptedException e)
@@ -175,6 +184,11 @@ public class BdvToBlenderView {
 			= BucketsWithGraphics.Vector3D.newBuilder();
 	final BucketsWithGraphics.SphereParameters.Builder sBuilder
 			= BucketsWithGraphics.SphereParameters.newBuilder();
+	final BucketsWithGraphics.TimeSpan timeSpanSealed = BucketsWithGraphics.TimeSpan
+			.newBuilder()
+			.setTimeFrom(-0.5f)
+			.setTimeTill(1000000)
+			.build();
 	final RealPoint spotNewPos = new RealPoint(3);
 
 	private float spotScalingForBlender = 1.0f;
@@ -186,11 +200,12 @@ public class BdvToBlenderView {
 	synchronized
 	void sendBdvSpotsToBlender()
 	{
+		long timeA = System.currentTimeMillis();
 		viewBdv.getViewerPanelMamut().state().getViewerTransform(lastSentTransform);
 		lastSentTimepoint = viewBdv.getViewerPanelMamut().state().getCurrentTimepoint();
 		//System.out.println("new tp: "+lastSentTimepoint+", and new transform: "+lastSentTransform);
 
-		sBuilder.setTime(0);
+		sBuilder.setSpan(timeSpanSealed);
 		spotsMsgBuilder.clearSpheres();
 
 		final TagSetStructure.TagSet ts = viewBdv.getColoringModel().getTagSet();
@@ -216,6 +231,8 @@ public class BdvToBlenderView {
 				= conn.commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
 		connMsg.onNext( spotsMsgBuilder.build() );
 		connMsg.onCompleted();
-		System.out.println("sent "+spotsMsgBuilder.getSpheresCount()+" spots");
+		long timeB = System.currentTimeMillis();
+		System.out.println("sent "+spotsMsgBuilder.getSpheresCount()
+				+" spots in "+(timeB-timeA)+" millis");
 	}
 }

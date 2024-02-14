@@ -86,8 +86,10 @@ public class FullLineageToBlender extends DynamicCommand {
 		this.getInfo().getMutableInput("colorScheme",String.class).setChoices( choices );
 	}
 
-	@Parameter(label = "Spheres scale:")
-	private float scaleFactor = 0.4f;
+	@Parameter(label = "Spheres size:", choices = {"scaled by factor value below", "set to the absolute size below"})
+	private String scaleMode = "scaled";
+	@Parameter(label = "Spheres... value:")
+	private float scaleSize = 1.5f;
 
 	//TODO: make a drop-down choice box: full data as one node, tree as one node, track as one node
 	private static final String GRP_LEVEL_FULL = "The whole lineage as one Blender node";
@@ -98,10 +100,12 @@ public class FullLineageToBlender extends DynamicCommand {
 
 	@Parameter(label = "Draw also tracks (as line segments):")
 	private boolean doLines = false;
-	@Parameter(label = "Line segments width:")
+	@Parameter(label = "Line segments absolute width:", stepSize = "0.1")
 	private float lineWidth = 0.4f;
+	@Parameter(label = "Line segments length in time points:", min = "1", stepSize = "1")
+	private int lineTimeSpan = 10;
 
-	@Parameter(label = "Displace lineages eccentrically by this amount:")
+	@Parameter(label = "EXPERIMENTAL: Displace lineages eccentrically by this amount:")
 	private float eccentricOffsetSize = 0.f;
 
 	@Parameter
@@ -110,6 +114,7 @@ public class FullLineageToBlender extends DynamicCommand {
 	@Override
 	public void run() {
 		//init the communication side
+		final boolean areSphereSizesScaled = scaleMode.startsWith("scaled");
 		try {
 			final BlenderSendingUtils.BlenderConnectionHandle conn
 					= BlenderSendingUtils.connectToBlender(connectURL, clientName);
@@ -125,6 +130,8 @@ public class FullLineageToBlender extends DynamicCommand {
 					= BucketsWithGraphics.SphereParameters.newBuilder();
 			final BucketsWithGraphics.LineParameters.Builder lBuilder
 					= BucketsWithGraphics.LineParameters.newBuilder();
+			final BucketsWithGraphics.TimeSpan.Builder tSpanBuilder
+					= BucketsWithGraphics.TimeSpan.newBuilder();
 
 			//<colors>
 			Optional<TagSetStructure.TagSet> ts = projectModel.getModel()
@@ -246,7 +253,13 @@ public class FullLineageToBlender extends DynamicCommand {
 								.setX(motherSpotRef.getFloatPosition(0))
 								.setY(motherSpotRef.getFloatPosition(1))
 								.setZ(motherSpotRef.getFloatPosition(2)) );
-						lBuilder.setTime(spot.getTimepoint());
+						//
+						final float spotTime = spot.getTimepoint();
+						lBuilder.setSpan( tSpanBuilder
+										.setTimeFrom(spotTime-0.5f)
+										.setTimeTill(spotTime+0.5f +lineTimeSpan-1)
+										.build() );
+						//
 						lBuilder.setRadius(lineWidth);
 						lBuilder.setColorXRGB( colorizer.color(spot) );
 						nodeBuilder[0].addLines(lBuilder);
@@ -279,7 +292,11 @@ public class FullLineageToBlender extends DynamicCommand {
 							//updates the builder content and builds inside setCentre()
 							.setX(currPos[0]).setY(currPos[1]).setZ(currPos[2]) );
 					sBuilder.setTime(spot.getTimepoint());
-					sBuilder.setRadius(scaleFactor * (float)Math.sqrt(spot.getBoundingSphereRadiusSquared()));
+					//
+					float size = scaleSize;
+					if (areSphereSizesScaled) size *= (float)Math.sqrt(spot.getBoundingSphereRadiusSquared());
+					sBuilder.setRadius(size);
+					//
 					sBuilder.setColorXRGB( colorizer.color(spot) );
 					//logService.info("adding sphere at: "+sBuilder.getTime());
 					nodeBuilder[0].addSpheres(sBuilder);

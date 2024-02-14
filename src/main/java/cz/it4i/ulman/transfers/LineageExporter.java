@@ -41,12 +41,17 @@ import cz.it4i.ulman.transfers.graphexport.leftrightness.AbstractDescendantsSort
 import org.mastodon.collection.RefList;
 import org.mastodon.collection.ref.RefArrayList;
 import org.mastodon.mamut.ProjectModel;
+import org.mastodon.model.tag.TagSetStructure;
 import org.mastodon.spatial.SpatioTemporalIndex;
 import org.mastodon.model.SelectionModel;
 import org.mastodon.mamut.model.ModelGraph;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.model.Link;
 
+import org.mastodon.ui.coloring.FixedColorGenerator;
+import org.mastodon.ui.coloring.GraphColorGenerator;
+import org.mastodon.ui.coloring.TagSetGraphColorGenerator;
+import org.scijava.command.DynamicCommand;
 import org.scijava.log.Logger;
 import org.scijava.plugin.Plugin;
 import org.scijava.plugin.Parameter;
@@ -57,14 +62,17 @@ import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.prefs.PrefService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 
 @Plugin( type = Command.class, name = "Export lineage with generations axis instead of time axis" )
-public class LineageExporter implements Command
+public class LineageExporter extends DynamicCommand
 {
 	@Parameter(visibility = ItemVisibility.MESSAGE)
 	private final String selectionInfoMsg = "...also of only selected sub-trees.";
@@ -85,6 +93,23 @@ public class LineageExporter implements Command
 	@Parameter(label = "How to export the lineage:",
 			choices = {"with straight lines","with rectangular lines","with own bending position"} )
 	public String exportMode;
+
+	@Parameter(label = "Choose color scheme:", initializer = "readAvailColors", choices = {})
+	private String colorScheme = "All in default color";
+
+	void readAvailColors() {
+		//there gotta be at least one choice... e.g. when there's not a single tagset available
+		List<String> choices = new ArrayList<>(50);
+		choices.add("All in default color");
+
+		projectModel.getModel()
+				.getTagSetModel()
+				.getTagSetStructure()
+				.getTagSets()
+				.forEach( ts -> choices.add(ts.getName()) );
+
+		this.getInfo().getMutableInput("colorScheme",String.class).setChoices( choices );
+	}
 
 	@Parameter(label = "Where to export the lineage:",
 			choices = {"yEd: into .graphml file","Blender: via an online connection","GraphStreamer: in a preview window"} )
@@ -137,6 +162,7 @@ public class LineageExporter implements Command
 			else if (exportTarget.startsWith("Blender")) {
 				runParams.put("defaultNodeHeight",10); //to hide this item from the dialog
 				runParams.put("projectID", projectID);
+				runParams.put("mastodonProjectModel", projectModel);
 				adjustParams(BlenderWriterDlg.class, runParams);
 				future = commandService.run(BlenderWriterDlg.class, true, runParams);
 			}
@@ -162,6 +188,23 @@ public class LineageExporter implements Command
 								ownLogger.warn("Sending debug graphics first!");
 								((AbstractDescendantsSorter)sorterOfDaughters).exportDebugGraphics(ge);
 						}
+
+						//<colors>
+						Optional<TagSetStructure.TagSet> ts = projectModel.getModel()
+								.getTagSetModel()
+								.getTagSetStructure()
+								.getTagSets()
+								.stream()
+								.filter(_ts -> _ts.getName().equals(colorScheme))
+								.findFirst();
+						colorizer = ts.isPresent() ? new TagSetGraphColorGenerator<>(
+								projectModel.getModel().getTagSetModel(), ts.get())
+								: new FixedColorGenerator(
+										ge.get_defaultNodeColour() & 0x00FF0000 >> 16,
+										ge.get_defaultNodeColour() & 0x0000FF00 >> 8,
+										ge.get_defaultNodeColour() & 0x000000FF );
+						//</colors>
+
 						//go!
 						selectionModel = projectModel.getSelectionModel();
 						isSelectionEmpty = selectionModel.isEmpty();
@@ -181,6 +224,7 @@ public class LineageExporter implements Command
 
 	boolean isSelectionEmpty;
 	SelectionModel<Spot, Link> selectionModel;
+	GraphColorGenerator<Spot, Link> colorizer;
 
 	private void time2Gen2GraphExportable_rootsFromSelection(final GraphExportable ge)
 	{
@@ -390,7 +434,7 @@ public class LineageExporter implements Command
 				                      ? (xRightBound + xLeftBound)/2
 				                      : (childrenXcoords[0] + childrenXcoords[countForwardLinks-1])/2;
 				//gsv.graph.addNode(rootID).addAttribute("xyz", new int[] {!,!,0});
-				ge.addNode(rootID, root.getLabel(),ge.get_defaultNodeColour(),
+				ge.addNode(rootID, root.getLabel(),colorizer.color(root),
 				           xCoords[xCoordsPos],ge.get_yLineStep()*generation);
 
 				if (countForwardLinks > 1)
