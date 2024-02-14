@@ -30,6 +30,7 @@ package cz.it4i.ulman.transfers.graphexport.ui;
 
 import cz.it4i.ulman.transfers.graphexport.BlenderWriter;
 import cz.it4i.ulman.transfers.graphexport.ui.util.PerProjectPrefsService;
+import org.mastodon.mamut.ProjectModel;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
@@ -56,6 +57,9 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	/** this param comes from the caller and should identify the project behind this */
 	@Parameter(persist = false, required = false)
 	String projectID = "default";
+
+	@Parameter(persist = false)
+	ProjectModel mastodonProjectModel;
 
 	@Parameter
 	PrefService prefService;
@@ -89,7 +93,7 @@ public class BlenderWriterDlg extends AbstractGraphExportableDlg implements Comm
 	@Override
 	public void run() {
 		storeDataNickname();
-		final BlenderWriter bw = new BlenderWriter(url, clientName,logService);
+		final BlenderWriter bw = new BlenderWriter(url, clientName,mastodonProjectModel, logService);
 		bw.lineRadius = defaultLineWidth*5;
 		bw.z_coord = defaultZCoord;
 		bw.sendMessage("I've been just created...");

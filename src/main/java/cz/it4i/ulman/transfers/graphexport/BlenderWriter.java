@@ -36,6 +36,9 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.mastodon.RefPool;
+import org.mastodon.mamut.ProjectModel;
+import org.mastodon.mamut.model.Spot;
 import org.scijava.log.LogService;
 import org.scijava.log.StderrLogService;
 
@@ -55,24 +58,32 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	final LogService logger;
 
 	public BlenderWriter(final String hostAndPort,
-	                     final String clientName)
+	                     final String clientName,
+	                     final ProjectModel mastodonProjectModel)
 	{
-		this(hostAndPort, clientName, new StderrLogService());
+		this(hostAndPort, clientName, mastodonProjectModel, new StderrLogService());
 	}
 
 	public BlenderWriter(final String hostAndPort,
 	                     final String clientName,
+	                     final ProjectModel mastodonProjectModel,
 	                     LogService logService)
 	{
-		this(ManagedChannelBuilder.forTarget(hostAndPort).usePlaintext().build(), clientName, logService);
+		this(ManagedChannelBuilder.forTarget(hostAndPort).usePlaintext().build(), clientName, mastodonProjectModel, logService);
 		url = hostAndPort;
 	}
 
+	RefPool<Spot> verticesPool;
+	Spot spot;
+
 	public BlenderWriter(final ManagedChannel someExistingChannel,
 	                     final String clientName,
+	                     final ProjectModel mastodonProjectModel,
 	                     LogService logService)
 	{
 		logger = logService;
+		spot = mastodonProjectModel.getModel().getGraph().vertices().createRef();
+		verticesPool = mastodonProjectModel.getModel().getGraph().vertices().getRefPool();
 
 		try {
 			channel = someExistingChannel;
@@ -82,7 +93,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 			setClientName(clientName);
 			introduceClient();
-			mainDataStream = commContinuous.addGraphics(new EmptyIgnoringStreamObservers());
+			mainDataStream = commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
 		} catch (StatusRuntimeException e) {
 			logger.warn("RPC client-side failed while accessing " + url
 					+ ", details follow:\n" + e.getMessage());
@@ -90,6 +101,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 	}
 
 	//private String currentSourceName = "Mastodon lineage trees";
+	private final BucketsWithGraphics.TimeSpan.Builder tSpanBuilder = BucketsWithGraphics.TimeSpan.newBuilder();
 	private BucketsWithGraphics.ClientIdentification currentCid;
 	public String currentCollectionName = "lineage trees";
 
@@ -102,6 +114,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		// resources the channel should be shut down when it will no longer be used. If it may be used
 		// again leave it running.
 		logger.info("connection to Blender is closing...");
+		verticesPool.releaseRef(spot);
 		try {
 			if (nodeBuilder != null && mainDataStream != null) {
 				mainDataStream.onNext( nodeBuilder.build() );
@@ -196,10 +209,14 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 	HashMap<Integer,Float> xs = new HashMap<>(10000);
 	HashMap<Integer,Float> ys = new HashMap<>(10000);
+	HashMap<Integer,Float> ts = new HashMap<>(10000);
 	float memorizeAndReturn(int id, float value, final HashMap<Integer,Float> memory) {
 		memory.put(id,value);
 		return value;
 	}
+
+	//colors...
+	HashMap<Integer,Integer> cs = new HashMap<>(10000);
 
 	HashMap<String,Integer> ids = new HashMap<>(10000);
 	int nextAvailId = 1;
@@ -211,6 +228,13 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 			ids.put(string_id, int_id);
 		}
 		return int_id;
+	}
+
+	float getTime(final String string_id) {
+		//NB: benefiting from the knowledge that the provided IDs are in fact vertices pool indices...
+		int poolIdx = Integer.parseInt(string_id);
+		verticesPool.getObject(poolIdx,spot);
+		return spot.getTimepoint();
 	}
 	// -----------------------------------------------------------------------------
 
@@ -228,10 +252,14 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		memorizeAndReturn(i, x, xs);
 		memorizeAndReturn(i, y, ys);
 
+		float time = getTime(id);
+		memorizeAndReturn(i, time, ts);
+		cs.put(i, colorRGB);
+
 		BucketsWithGraphics.SphereParameters.Builder s = BucketsWithGraphics.SphereParameters.newBuilder();
 		s.setCentre( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(x).setY(z_coord).setZ(y).build() );
-		s.setTime(0);
+		s.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		s.setRadius(width);
 		s.setColorXRGB(colorRGB);
 		//logger.info("adding sphere: "+s);
@@ -244,15 +272,17 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 		final int fi = translateID(fromId);
 		final int ti = translateID(toId);
+		final float time = ts.getOrDefault(ti,0.f);
+		final int color = cs.getOrDefault(ti, 0x00FF00FF);
 
 		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(fi)).setY(z_coord).setZ(ys.get(fi)).build() );
 		l.setEndPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(ti)).setY(z_coord).setZ(ys.get(ti)).build() );
-		l.setTime(0);
+		l.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		l.setRadius(lineRadius);
-		l.setColorIdx(0);
+		l.setColorXRGB(color);
 		//logger.info("adding line: "+l);
 		nodeBuilder.addLines(l);
 	}
@@ -274,15 +304,17 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 		final int fid = translateID(fromId);
 		final int tid = translateID(toId);
+		final float time = ts.getOrDefault(tid,0.f);
+		final int color = cs.getOrDefault(tid, 0x00FF00FF);
 
 		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(fid)).setY(z_coord).setZ(ys.get(fid)).build() );
 		l.setEndPos( BucketsWithGraphics.Vector3D.newBuilder()
 				.setX(xs.get(tid)).setY(z_coord).setZ(ys.get(tid)-bendingOffsetY).build() );
-		l.setTime(0);
+		l.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		l.setRadius(lineRadius);
-		l.setColorIdx(0);
+		l.setColorXRGB(color);
 		nodeBuilder.addLines(l);
 
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
