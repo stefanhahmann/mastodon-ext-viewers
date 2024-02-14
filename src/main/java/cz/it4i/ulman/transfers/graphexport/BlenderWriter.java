@@ -93,7 +93,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 			setClientName(clientName);
 			introduceClient();
-			mainDataStream = commContinuous.addGraphics(new EmptyIgnoringStreamObservers());
+			mainDataStream = commContinuous.replaceGraphics(new EmptyIgnoringStreamObservers());
 		} catch (StatusRuntimeException e) {
 			logger.warn("RPC client-side failed while accessing " + url
 					+ ", details follow:\n" + e.getMessage());
