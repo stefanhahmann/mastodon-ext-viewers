@@ -215,6 +215,9 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		return value;
 	}
 
+	//colors...
+	HashMap<Integer,Integer> cs = new HashMap<>(10000);
+
 	HashMap<String,Integer> ids = new HashMap<>(10000);
 	int nextAvailId = 1;
 	int translateID(final String string_id) {
@@ -251,6 +254,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 
 		float time = getTime(id);
 		memorizeAndReturn(i, time, ts);
+		cs.put(i, colorRGB);
 
 		BucketsWithGraphics.SphereParameters.Builder s = BucketsWithGraphics.SphereParameters.newBuilder();
 		s.setCentre( BucketsWithGraphics.Vector3D.newBuilder()
@@ -269,6 +273,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		final int fi = translateID(fromId);
 		final int ti = translateID(toId);
 		final float time = ts.getOrDefault(ti,0.f);
+		final int color = cs.getOrDefault(ti, 0x00FF00FF);
 
 		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
@@ -277,7 +282,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.setX(xs.get(ti)).setY(z_coord).setZ(ys.get(ti)).build() );
 		l.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		l.setRadius(lineRadius);
-		l.setColorIdx(0);
+		l.setColorXRGB(color);
 		//logger.info("adding line: "+l);
 		nodeBuilder.addLines(l);
 	}
@@ -300,6 +305,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 		final int fid = translateID(fromId);
 		final int tid = translateID(toId);
 		final float time = ts.getOrDefault(tid,0.f);
+		final int color = cs.getOrDefault(tid, 0x00FF00FF);
 
 		BucketsWithGraphics.LineParameters.Builder l = BucketsWithGraphics.LineParameters.newBuilder();
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
@@ -308,7 +314,7 @@ public class BlenderWriter extends AbstractGraphExporter implements GraphExporta
 				.setX(xs.get(tid)).setY(z_coord).setZ(ys.get(tid)-bendingOffsetY).build() );
 		l.setSpan( tSpanBuilder.setTimeFrom(time-0.5f).setTimeTill(1000000).build() );
 		l.setRadius(lineRadius);
-		l.setColorIdx(0);
+		l.setColorXRGB(color);
 		nodeBuilder.addLines(l);
 
 		l.setStartPos( BucketsWithGraphics.Vector3D.newBuilder()
