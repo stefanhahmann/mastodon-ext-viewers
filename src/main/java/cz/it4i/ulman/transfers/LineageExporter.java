@@ -199,7 +199,10 @@ public class LineageExporter extends DynamicCommand
 								.findFirst();
 						colorizer = ts.isPresent() ? new TagSetGraphColorGenerator<>(
 								projectModel.getModel().getTagSetModel(), ts.get())
-								: new FixedColorGenerator(255,255,255);
+								: new FixedColorGenerator(
+										ge.get_defaultNodeColour() & 0x00FF0000 >> 16,
+										ge.get_defaultNodeColour() & 0x0000FF00 >> 8,
+										ge.get_defaultNodeColour() & 0x000000FF );
 						//</colors>
 
 						//go!
@@ -431,7 +434,7 @@ public class LineageExporter extends DynamicCommand
 				                      ? (xRightBound + xLeftBound)/2
 				                      : (childrenXcoords[0] + childrenXcoords[countForwardLinks-1])/2;
 				//gsv.graph.addNode(rootID).addAttribute("xyz", new int[] {!,!,0});
-				ge.addNode(rootID, root.getLabel(),ge.get_defaultNodeColour(),
+				ge.addNode(rootID, root.getLabel(),colorizer.color(root),
 				           xCoords[xCoordsPos],ge.get_yLineStep()*generation);
 
 				if (countForwardLinks > 1)
