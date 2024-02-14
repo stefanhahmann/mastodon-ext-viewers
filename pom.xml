@@ -9,7 +9,7 @@
 
 	<groupId>cz.it4i.ulman.transfers</groupId>
 	<artifactId>mastodon-ext-viewers</artifactId>
-	<version>0.9.12-SNAPSHOT</version>
+	<version>0.9.13-SNAPSHOT</version>
 
 	<organization>
 		<name>IT4Innovations</name>
